@@ -1,0 +1,580 @@
+/* =========================================================
+   Pulau Burung News — Stylesheet dashboard redaksi (admin/reporter)
+   Menggunakan token warna & font yang sama dengan situs publik
+   (lihat css/style.css untuk variabel :root)
+   ========================================================= */
+
+.login-wrap{
+  min-height:100vh;
+  display:flex; align-items:center; justify-content:center;
+  padding:20px;
+}
+.login-card{
+  background:var(--card);
+  border:1px solid var(--line);
+  padding:44px;
+  max-width:380px;
+  width:100%;
+}
+.login-card .brand{ margin-bottom:28px; justify-content:flex-start; }
+.login-card h2{
+  font-family:'Fraunces', serif;
+  font-size:22px;
+  margin:0 0 6px;
+}
+.login-card p.sub{
+  color:var(--ink-soft);
+  font-size:13px;
+  margin:0 0 26px;
+  line-height:1.55;
+}
+.auth-tabs{
+  display:flex;
+  border-bottom:1px solid var(--line);
+  margin-bottom:24px;
+}
+.auth-tab{
+  flex:1;
+  background:transparent;
+  border:none;
+  padding:10px 0;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:11.5px;
+  letter-spacing:0.05em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+  border-bottom:2px solid transparent;
+  cursor:pointer;
+}
+.auth-tab.active{
+  color:var(--ink);
+  border-bottom-color:var(--pine);
+}
+
+.role-select{
+  border:1px solid var(--line-strong);
+  background:var(--paper);
+  padding:6px 8px;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:11px;
+  color:var(--ink);
+}
+.role-select:disabled{ opacity:0.55; }
+
+.field{ margin-bottom:16px; }
+.field label{
+  display:block;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:11px;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+  margin-bottom:6px;
+}
+.field input, .field select, .field textarea{
+  width:100%;
+  border:1px solid var(--line-strong);
+  background:var(--paper);
+  padding:10px 12px;
+  font-family:'Inter', sans-serif;
+  font-size:14px;
+  color:var(--ink);
+  outline:none;
+}
+.field input:focus, .field select:focus, .field textarea:focus{
+  border-color:var(--pine);
+}
+.field textarea{ resize:vertical; min-height:90px; font-family:'Inter', sans-serif; }
+.field-row{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.field-check{ display:flex; align-items:center; gap:8px; margin-bottom:16px; }
+.field-check input{ width:auto; }
+.field-check label{ margin:0; text-transform:none; font-size:13px; letter-spacing:0; }
+
+.btn-block{ width:100%; text-align:center; border:none; }
+.login-error{
+  background:rgba(178,58,24,0.1);
+  border:1px solid rgba(178,58,24,0.3);
+  color:var(--rust);
+  padding:10px 12px;
+  font-size:12.5px;
+  margin-bottom:16px;
+  display:none;
+}
+.login-hint{
+  margin-top:22px;
+  padding-top:18px;
+  border-top:1px solid var(--line);
+  font-family:'IBM Plex Mono', monospace;
+  font-size:11px;
+  color:var(--ink-soft);
+  line-height:1.7;
+}
+
+/* ---------- Dashboard shell ---------- */
+.dash-topbar{
+  background:var(--ink);
+  color:var(--paper);
+}
+.dash-topbar .wrap{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 24px;
+}
+.dash-user{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:12px;
+  display:flex; align-items:center; gap:10px;
+}
+.role-badge{
+  font-size:10px;
+  letter-spacing:0.06em;
+  padding:2px 8px;
+  border:1px solid rgba(237,230,214,0.4);
+  text-transform:uppercase;
+}
+.dash-actions{ display:flex; gap:10px; }
+.link-btn{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:11.5px;
+  letter-spacing:0.04em;
+  color:var(--paper);
+  border:1px solid rgba(237,230,214,0.35);
+  padding:7px 14px;
+  background:transparent;
+}
+.link-btn:hover{ background:rgba(237,230,214,0.12); }
+
+.dash-main{ padding:32px 0 60px; }
+.dash-head{
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;
+  margin-bottom:24px;
+}
+.dash-head h1{
+  font-family:'Fraunces', serif;
+  font-size:26px;
+  margin:0;
+}
+.stat-row{
+  display:grid;
+  grid-template-columns:repeat(4, 1fr);
+  gap:16px;
+  margin-bottom:32px;
+}
+.stat-card{
+  background:var(--card);
+  border:1px solid var(--line);
+  padding:18px 20px;
+}
+.stat-card .num{
+  font-family:'Fraunces', serif;
+  font-size:28px;
+  font-weight:700;
+}
+.stat-card .label{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:10.5px;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+  margin-top:4px;
+}
+
+.dash-grid{
+  display:grid;
+  grid-template-columns:1fr 380px;
+  gap:28px;
+  align-items:start;
+}
+
+.panel{
+  background:var(--card);
+  border:1px solid var(--line);
+  padding:24px;
+}
+.panel h2{
+  font-family:'Fraunces', serif;
+  font-size:18px;
+  margin:0 0 18px;
+  padding-bottom:14px;
+  border-bottom:2px solid var(--ink);
+}
+
+/* ---------- Tabel artikel ---------- */
+.article-table{ width:100%; border-collapse:collapse; }
+.article-table th{
+  text-align:left;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:10px;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+  padding:0 8px 10px;
+  border-bottom:1px solid var(--line-strong);
+}
+.article-table td{
+  padding:12px 8px;
+  border-bottom:1px solid var(--line);
+  font-size:13px;
+  vertical-align:top;
+}
+.article-table .art-title{
+  font-family:'Fraunces', serif;
+  font-weight:600;
+  font-size:14.5px;
+  margin-bottom:4px;
+}
+.article-table .art-meta{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:10.5px;
+  color:var(--ink-soft);
+}
+.status-pill{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:10px;
+  padding:2px 8px;
+  display:inline-block;
+  text-transform:uppercase;
+  letter-spacing:0.04em;
+}
+.status-published{ background:rgba(31,75,63,0.14); color:var(--pine); }
+.status-draft{ background:rgba(166,116,42,0.14); color:var(--marigold); }
+.row-actions{ display:flex; gap:8px; flex-wrap:wrap; }
+.row-actions button{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:10.5px;
+  letter-spacing:0.03em;
+  border:1px solid var(--line-strong);
+  background:transparent;
+  padding:5px 9px;
+  color:var(--ink);
+}
+.row-actions button:hover{ background:var(--paper-2); }
+.row-actions button.danger{ color:var(--rust); border-color:rgba(178,58,24,0.4); }
+.row-actions button.primary{ color:var(--pine); border-color:rgba(31,75,63,0.4); }
+
+.table-empty{
+  padding:30px 0;
+  text-align:center;
+  color:var(--ink-soft);
+  font-family:'IBM Plex Mono', monospace;
+  font-size:12px;
+}
+
+.table-filters{
+  display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;
+}
+.table-filters select, .table-filters input{
+  border:1px solid var(--line-strong);
+  background:var(--paper);
+  padding:7px 10px;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:11.5px;
+  color:var(--ink);
+}
+
+.form-note{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:10.5px;
+  color:var(--ink-soft);
+  line-height:1.6;
+  margin:0 0 18px;
+}
+
+.form-actions{ display:flex; gap:10px; margin-top:6px; }
+.btn-secondary{
+  background:transparent;
+  border:1px solid var(--line-strong);
+  color:var(--ink);
+  font-family:'IBM Plex Mono', monospace;
+  font-size:12px;
+  padding:12px 18px;
+}
+.btn-secondary:hover{ background:var(--paper-2); }
+
+.toast{
+  position:fixed;
+  bottom:24px; right:24px;
+  background:var(--pine);
+  color:var(--paper);
+  padding:12px 18px;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:12.5px;
+  box-shadow:0 6px 18px rgba(0,0,0,0.2);
+  opacity:0;
+  transform:translateY(10px);
+  transition:all 0.25s ease;
+  pointer-events:none;
+  z-index:200;
+}
+.toast.show{ opacity:1; transform:translateY(0); }
+
+@media (max-width: 980px){
+  .dash-grid{ grid-template-columns:1fr; }
+  .stat-row{ grid-template-columns:1fr 1fr; }
+}
+@media (max-width: 560px){
+  .field-row{ grid-template-columns:1fr; }
+  .stat-row{ grid-template-columns:1fr; }
+}
+/* =========================================================
+   PROFIL SAYA — DASHBOARD
+   ========================================================= */
+
+.profile-modal-box{
+  max-width:620px;
+}
+
+.profile-modal-box h2{
+  margin-top:0;
+  margin-bottom:8px;
+}
+
+.profile-avatar-area{
+  display:flex;
+  align-items:center;
+  gap:20px;
+  margin-bottom:22px;
+  padding-bottom:20px;
+  border-bottom:1px solid var(--line);
+}
+
+.dashboard-profile-avatar{
+  width:90px;
+  height:90px;
+  border-radius:50%;
+  object-fit:cover;
+  background:var(--paper-2);
+  border:2px solid var(--line-strong);
+  flex-shrink:0;
+}
+
+.profile-danger-zone{
+  margin-top:30px;
+  padding-top:22px;
+  border-top:1px solid rgba(178,58,24,0.35);
+}
+
+.profile-danger-zone h3{
+  font-family:'Fraunces', serif;
+  margin:0 0 6px;
+  color:var(--rust);
+}
+
+.profile-danger-zone p{
+  color:var(--ink-soft);
+  font-size:13px;
+  line-height:1.5;
+}
+
+.btn-danger{
+  background:var(--rust);
+  color:#fff;
+  border:none;
+  padding:11px 16px;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:11px;
+  font-weight:600;
+  cursor:pointer;
+}
+
+.btn-danger:hover{
+  background:#8f2c11;
+}
+
+@media (max-width:520px){
+
+  .profile-avatar-area{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+  .dashboard-profile-avatar{
+    width:76px;
+    height:76px;
+  }
+
+}
+
+/* =========================================================
+   PENGATURAN HARGA KELAPA & EMAS
+   ========================================================= */
+
+.market-admin-panel h2{
+  margin-bottom:8px;
+}
+
+.market-admin-main-toggle{
+  margin:20px 0;
+  padding:14px;
+  background:var(--paper-2);
+  border:1px solid var(--line);
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12px;
+}
+
+.market-admin-main-toggle input,
+.market-admin-box input[type="checkbox"]{
+  margin-right:8px;
+}
+
+.market-admin-box{
+  border:1px solid var(--line);
+  padding:20px;
+  margin-top:18px;
+  background:rgba(237,230,214,0.45);
+}
+
+.market-admin-box h3{
+  font-family:'Fraunces',serif;
+  font-size:20px;
+  margin:0 0 18px;
+}
+
+.market-admin-box .field:last-child{
+  margin-bottom:0;
+}
+/* ===== DASHBOARD REDAKSI PROFESIONAL ===== */
+#redaksi-section{display:grid;grid-template-columns:230px minmax(0,1fr);gap:0;background:#f4f6f3;border:1px solid #e2e8e4;border-radius:14px;overflow:hidden;min-height:620px;}
+.pbn-redaksi-sidebar{background:#17382f;color:#fff;padding:20px 12px;min-height:620px}.pbn-redaksi-brand{padding:4px 10px 18px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:12px}.pbn-redaksi-brand b{display:block;font-size:14px}.pbn-redaksi-brand span{display:block;margin-top:5px;color:#a8beb5;font:9px 'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.08em}
+.pbn-side-group{margin:14px 0}.pbn-side-group small{display:block;color:#819b90;font:700 9px 'IBM Plex Mono',monospace;letter-spacing:.12em;padding:0 10px 6px}.pbn-side-btn{display:block;width:100%;border:0;background:transparent;color:#b5c7c0;text-align:left;border-radius:8px;padding:10px;cursor:pointer;font:600 10px 'IBM Plex Mono',monospace;margin:2px 0}.pbn-side-btn:hover{background:rgba(255,255,255,.07);color:#fff}.pbn-side-btn.active{background:rgba(216,168,78,.15);color:#fff;box-shadow:inset 3px 0 #d8a84e}
+.pbn-redaksi-content{min-width:0;padding:24px;background:#f4f6f3}.pbn-view{display:none}.pbn-view.active{display:block}.pbn-page-title{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px}.pbn-page-title h2{margin:0}.pbn-page-title p{margin:6px 0 0;color:#718078;font-size:11px}.pbn-summary-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}.pbn-summary-card{background:#fff;border:1px solid #e1e7e3;border-radius:11px;padding:16px}.pbn-summary-card small{display:block;color:#718078;font:700 9px 'IBM Plex Mono',monospace;text-transform:uppercase}.pbn-summary-card strong{display:block;color:#20352d;font-size:25px;margin-top:7px}.pbn-summary-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:14px}.pbn-summary-grid .panel{margin:0}.pbn-quick-actions{display:flex;gap:8px;flex-wrap:wrap}
+#redaksi-section .dash-grid{display:block}.pbn-view > .panel{margin-top:0!important}.pbn-view > .dash-grid{margin:0}.pbn-view > .dash-grid > .panel{margin:0 0 16px}.pbn-view[data-pbn-target="create"] .panel{margin:0!important}.pbn-view[data-pbn-target="moderation"] .panel,.pbn-view[data-pbn-target="loker"] .panel,.pbn-view[data-pbn-target="ads"] .panel,.pbn-view[data-pbn-target="users"] .panel,.pbn-view[data-pbn-target="profiles"] .panel,.pbn-view[data-pbn-target="settings"] .panel{margin-top:0!important;margin-bottom:16px}
+@media(max-width:850px){#redaksi-section{grid-template-columns:1fr}.pbn-redaksi-sidebar{min-height:auto;padding:10px}.pbn-side-group{margin:4px 0}.pbn-side-group small{display:none}.pbn-side-btn{display:inline-block;width:auto;margin-right:3px}.pbn-redaksi-brand{display:none}.pbn-side-group{display:inline}.pbn-summary-cards{grid-template-columns:repeat(2,1fr)}.pbn-summary-grid{grid-template-columns:1fr}.pbn-redaksi-content{padding:15px}}
+@media(max-width:480px){.pbn-summary-cards{grid-template-columns:1fr}}
+
+
+/* ===== REQUEST MASUK DI HALAMAN UTAMA DASHBOARD ===== */
+.pbn-home-heading{display:flex;align-items:flex-end;justify-content:space-between;margin:0 0 14px}
+.pbn-home-heading h2{margin:3px 0 4px;color:#20352d;font-size:20px}
+.pbn-home-heading p{margin:0;color:#718078;font-size:11px}
+.pbn-kicker{display:block;color:#6c8077;font:700 9px 'IBM Plex Mono',monospace;letter-spacing:1.2px}
+.pbn-home-requests{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:22px;align-items:start}
+.pbn-home-requests>div{min-width:0}
+.pbn-home-requests>div>.panel{margin:0!important;height:100%;border:1px solid #dfe6e2;border-radius:12px;box-shadow:0 2px 10px rgba(31,75,63,.05);overflow:hidden}
+.pbn-home-requests .panel h2{margin:0;padding:14px 15px 8px;color:#20352d;font-size:14px;line-height:1.35}
+.pbn-home-requests .panel .form-note{margin:0;padding:0 15px 12px;font-size:10px;line-height:1.5}
+.pbn-home-requests .panel>div[style*="overflow-x:auto"]{margin:0!important;max-height:330px;overflow:auto!important;border-top:1px solid #edf1ef}
+.pbn-home-requests .article-table{min-width:640px;font-size:10px}
+.pbn-home-requests .article-table th{position:sticky;top:0;z-index:1;background:#f7f9f8}
+.pbn-home-requests .article-table th,.pbn-home-requests .article-table td{padding:8px 9px}
+.pbn-home-requests .row-actions{gap:4px}
+.pbn-home-requests .row-actions button{font-size:9px;padding:5px 7px}
+.pbn-home-requests .req-thumb{width:38px;height:38px;object-fit:cover;border-radius:6px}
+@media(max-width:1150px){.pbn-home-requests{grid-template-columns:1fr}.pbn-home-requests>div>.panel{height:auto}}
+@media(max-width:850px){.pbn-home-heading{margin-bottom:12px}.pbn-home-heading h2{font-size:18px}}
+
+/* =========================================================
+   REDESAIN HEADER + NAVIGASI REDAKSI — MINIMAL / PROFESIONAL
+   ========================================================= */
+.dash-topbar{background:#102f27;border-bottom:1px solid rgba(255,255,255,.09);box-shadow:0 4px 18px rgba(16,47,39,.12);position:sticky;top:0;z-index:500}
+.dash-topbar .wrap{min-height:68px;padding:10px 22px;gap:20px}
+.dash-topbar-left{display:flex;align-items:center;gap:12px;min-width:0}
+.pbn-menu-toggle{width:40px;height:40px;border:1px solid rgba(255,255,255,.18);border-radius:10px;background:rgba(255,255,255,.06);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;flex:0 0 auto;transition:.2s ease}
+.pbn-menu-toggle span{display:block;width:17px;height:2px;border-radius:2px;background:#f5f1e8;transition:.2s ease}
+.pbn-menu-toggle:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.3)}
+.pbn-menu-toggle[aria-expanded="true"] span:nth-child(1){transform:translateY(6px) rotate(45deg)}
+.pbn-menu-toggle[aria-expanded="true"] span:nth-child(2){opacity:0}
+.pbn-menu-toggle[aria-expanded="true"] span:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
+.pbn-top-brand{display:flex;align-items:center;gap:10px;min-width:0}
+.pbn-top-mark{width:38px;height:38px;border:1px solid rgba(237,230,214,.25);border-radius:10px;display:grid;place-items:center;font:700 10px 'IBM Plex Mono',monospace;color:#f3eee3;background:rgba(255,255,255,.05);letter-spacing:.04em}
+.pbn-top-brand-text{display:flex;flex-direction:column;min-width:0}
+.pbn-top-brand-text strong{font:700 14px 'Inter',sans-serif;color:#fff;white-space:nowrap}
+.pbn-top-brand-text span{font:500 8.5px 'IBM Plex Mono',monospace;color:#9eb8ae;letter-spacing:.12em;margin-top:3px;white-space:nowrap}
+.dash-actions{align-items:center;gap:7px;flex-wrap:nowrap}
+.dash-user{padding-right:8px;margin-right:2px;display:flex;align-items:center;gap:9px}
+.pbn-admin-avatar{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#d8a84e;color:#17382f;font:800 12px 'Inter',sans-serif}
+.pbn-user-copy{display:flex;flex-direction:column;gap:3px;min-width:0}
+.pbn-user-copy strong{font:600 11px 'Inter',sans-serif;color:#f6f2e9;white-space:nowrap;max-width:145px;overflow:hidden;text-overflow:ellipsis}
+.role-badge{font-size:8px;padding:2px 6px;line-height:1.2;width:max-content;border-radius:4px;background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.2);color:#a9c0b7}
+.top-action{height:36px;display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.14);border-radius:9px;padding:0 10px;background:rgba(255,255,255,.045);color:#edf0eb;font:600 10px 'Inter',sans-serif;text-decoration:none;cursor:pointer;transition:.2s ease}
+.top-action:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.26);color:#fff}
+.top-action-icon{font-size:13px;line-height:1;color:#c9d9d2}
+.top-logout{color:#e6c6bd}
+.top-logout:hover{color:#fff;background:rgba(178,58,24,.18);border-color:rgba(178,58,24,.35)}
+
+#redaksi-section{position:relative;display:block;background:#f4f6f3;border:1px solid #e2e8e4;border-radius:14px;overflow:visible;min-height:620px}
+.pbn-redaksi-content{width:100%;min-width:0;padding:26px;background:#f4f6f3;border-radius:14px}
+.pbn-redaksi-sidebar{position:fixed;left:0;top:68px;bottom:0;width:270px;min-height:0;height:calc(100vh - 68px);padding:18px 14px;background:#17382f;color:#fff;z-index:700;box-shadow:12px 0 35px rgba(0,0,0,.16);transform:translateX(-105%);transition:transform .25s ease;overflow-y:auto;border-right:1px solid rgba(255,255,255,.08)}
+.pbn-redaksi-sidebar.is-open{transform:translateX(0)}
+.pbn-sidebar-head{display:flex;align-items:center;justify-content:space-between;padding:3px 5px 16px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:12px}
+.pbn-sidebar-head b{display:block;font:700 14px 'Inter',sans-serif}
+.pbn-sidebar-head span{display:block;margin-top:4px;color:#91aaa0;font:9px 'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.08em}
+.pbn-sidebar-close{width:30px;height:30px;border:1px solid rgba(255,255,255,.16);border-radius:8px;background:transparent;color:#d8e4df;font-size:20px;line-height:1;cursor:pointer}
+.pbn-sidebar-close:hover{background:rgba(255,255,255,.1);color:#fff}
+.pbn-side-menu{display:flex;flex-direction:column;gap:3px}
+.pbn-side-btn{display:flex;align-items:center;gap:11px;width:100%;border:0;background:transparent;color:#b9cbc4;text-align:left;border-radius:9px;padding:11px 12px;cursor:pointer;font:600 10.5px 'IBM Plex Mono',monospace;margin:0;transition:.18s ease}
+.pbn-side-btn:hover{background:rgba(255,255,255,.07);color:#fff;transform:translateX(1px)}
+.pbn-side-btn.active{background:#31533f;color:#fff;box-shadow:inset 3px 0 #d8a84e}
+.pbn-nav-icon{width:17px;text-align:center;font-size:13px;color:#a7bcb4;flex:0 0 17px}
+.pbn-side-btn.active .pbn-nav-icon{color:#f1c66d}
+.pbn-nav-divider{height:1px;background:rgba(255,255,255,.08);margin:9px 7px}
+.pbn-sidebar-footer{margin-top:22px;padding:13px 7px 4px;border-top:1px solid rgba(255,255,255,.08);color:#78938a;font:8.5px 'IBM Plex Mono',monospace;letter-spacing:.06em}
+.pbn-sidebar-footer span{color:#d8a84e;margin:0 4px}
+.pbn-nav-backdrop{position:fixed;inset:68px 0 0;background:rgba(10,28,23,.35);z-index:650;opacity:0;visibility:hidden;transition:.2s ease;backdrop-filter:blur(2px)}
+.pbn-nav-backdrop.is-visible{opacity:1;visibility:visible}
+
+@media(max-width:900px){
+  .dash-topbar .wrap{padding:9px 14px}
+  .pbn-top-brand-text span{display:none}
+  .dash-user{display:none}
+  .top-action span:not(.top-action-icon){display:none}
+  .top-action{width:36px;padding:0;justify-content:center}
+  .pbn-redaksi-sidebar{top:62px;height:calc(100vh - 62px)}
+  .pbn-nav-backdrop{inset:62px 0 0}
+  .pbn-redaksi-content{padding:18px}
+}
+@media(max-width:560px){
+  .pbn-top-brand-text strong{font-size:12px}
+  .pbn-top-mark{display:none}
+  .pbn-menu-toggle{width:38px;height:38px}
+  .dash-actions{gap:5px}
+}
+
+/* =========================================================
+   DAFTAR PECAHAN HARGA EMAS — form dashboard admin
+   ========================================================= */
+.emas-denom-list{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  margin-bottom:6px;
+}
+.emas-denom-row{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr auto;
+  gap:8px;
+  align-items:center;
+}
+.emas-denom-row input{
+  padding:8px 10px;
+  border:1px solid var(--line-strong);
+  font-family:'Inter', sans-serif;
+  font-size:13px;
+  border-radius:4px;
+}
+.emas-denom-remove{
+  width:32px;
+  height:32px;
+  border:1px solid var(--line-strong);
+  background:#fff;
+  color:var(--rust);
+  border-radius:4px;
+  cursor:pointer;
+  font-size:14px;
+}
+.emas-denom-remove:hover{
+  background:var(--rust);
+  color:#fff;
+}
+@media (max-width: 720px){
+  .emas-denom-row{ grid-template-columns:1fr; }
+}
+
+/* =========================================================
+   PANEL IKLAN PROMO SHOPEE — dashboard admin
+   ========================================================= */
+#shopee-ads-tbody img{
+  display:block;
+}
+#shopee-ads-tbody .shopee-item-toggle{
+  width:auto;
+}
