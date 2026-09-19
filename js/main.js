@@ -850,26 +850,42 @@ function bindNavProfileScroll() {
 
   let wasStuck = null;
 
+  function openOverflowNow() {
+    el.classList.toggle('nav-profile-mini-overflow-open', el.classList.contains('nav-profile-mini-visible'));
+  }
+
   function update() {
     const stuck = nav.getBoundingClientRect().top <= 0;
     if (stuck === wasStuck) return;
     wasStuck = stuck;
     el.classList.toggle('nav-profile-mini-visible', stuck);
+
+    // Jika ikon langsung tampil tanpa melewati transisi lebar (mis. di HP
+    // saat load pertama), transitionend di bawah tidak akan terpicu.
+    // Fallback: buka overflow segera, jangan menunggu event yang mungkin
+    // tidak pernah datang.
+    if (!('ontransitionend' in el) || getComputedStyle(el).transitionDuration === '0s') {
+      openOverflowNow();
+    }
   }
 
   update();
   window.addEventListener('scroll', update, { passive: true });
   window.addEventListener('resize', update);
 
-    el.addEventListener('transitionend', (e) => {
+  el.addEventListener('transitionend', (e) => {
     if (e.propertyName !== 'width') return;
     if (typeof pbnUpdateNavOverflow === 'function') pbnUpdateNavOverflow();
+    openOverflowNow();
+  });
 
-    // Setelah animasi lebar SELESAI, baru buka overflow supaya dropdown
-    // profil bisa tampil normal keluar dari kotak 52px ini. Saat ikon
-    // hilang lagi (scroll ke atas), overflow ditutup lagi terlebih dahulu
-    // supaya animasi mengecilnya tetap rapi (tidak ada elemen "bocor").
-    el.classList.toggle('nav-profile-mini-overflow-open', el.classList.contains('nav-profile-mini-visible'));
+  // Pengaman tambahan: kalau dropdown di dalam ikon ini di-klik untuk
+  // dibuka tapi overflow parent belum sempat kebuka (kasus transitionend
+  // gagal terpicu), paksa buka overflow saat tombolnya ditekan.
+  el.addEventListener('click', () => {
+    if (el.classList.contains('nav-profile-mini-visible')) {
+      openOverflowNow();
+    }
   });
 }
 
