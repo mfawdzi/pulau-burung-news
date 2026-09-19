@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Redaksi — Pulau Burung News</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+  <!-- ========== LOGIN / DAFTAR ========== -->
+  <div class="login-wrap" id="login-view">
+    <div class="login-card">
+      <div class="brand">
+        <div class="brand-mark">PBN</div>
+        <div>
+          <div class="brand-name" style="font-size:22px;">Pulau Burung News</div>
+        </div>
+      </div>
+
+      <div class="auth-tabs">
+        <button type="button" class="auth-tab active" id="tab-login-btn">Masuk</button>
+        <button type="button" class="auth-tab" id="tab-register-btn">Daftar Akun</button>
+      </div>
+
+      <!-- Panel Masuk (satu form yang sama untuk admin super, admin, reporter, maupun pengunjung) -->
+      <div id="login-panel">
+        <h2>Masuk Akun</h2>
+        <p class="sub">Satu pintu masuk untuk semua akun redaksi maupun akun pengunjung terdaftar.</p>
+
+        <div class="login-error" id="login-error"></div>
+
+        <form id="login-form">
+          <div class="field">
+            <label for="login-username">Username</label>
+            <input type="text" id="login-username" autocomplete="username" required>
+          </div>
+          <div class="field">
+            <label for="login-password">Kata Sandi</label>
+            <div class="password-field">
+              <input type="password" id="login-password" autocomplete="current-password" required>
+              <button type="button" class="password-toggle" data-target="login-password" aria-label="Lihat kata sandi">👁</button>
+            </div>
+          </div>
+          <div style="text-align:right; margin:-10px 0 18px;">
+            <button type="button" id="open-forgot-password" style="background:none;border:none;color:var(--ink-soft);font-family:'IBM Plex Mono', monospace;font-size:11px;text-decoration:underline;cursor:pointer;padding:0;">Lupa kata sandi?</button>
+          </div>
+          <button type="submit" class="btn btn-block">MASUK</button>
+        </form>
+
+        <div class="login-hint">
+        </div>
+      </div>
+
+      <!-- Panel Daftar (akun baru selalu jadi Pengunjung; admin super yang bisa menaikkan jadi reporter) -->
+      <div id="register-panel" style="display:none;">
+        <h2>Daftar Akun Pengunjung</h2>
+        <p class="sub">Untuk berkomentar, kirim info berita, ajukan info loker, atau ajukan pasang iklan. Peran reporter hanya bisa diberikan oleh admin super.</p>
+
+        <div class="login-error" id="register-error"></div>
+
+        <form id="register-form">
+          <div class="field">
+            <label for="register-name">Nama Lengkap</label>
+            <input type="text" id="register-name" required>
+          </div>
+          <div class="field">
+            <label for="register-username">Username</label>
+            <input type="text" id="register-username" autocomplete="username" required>
+          </div>
+           <div class="field">
+            <label for="register-phone">Nomor WhatsApp</label>
+            <input type="text" id="register-phone" placeholder="08xxxxxxxxxx" required>
+            <p class="form-note" style="margin:6px 0 0;">Dipakai untuk verifikasi jika Anda lupa kata sandi.</p>
+          </div>
+          <div class="field">
+  <label for="register-email">
+    Email
+  </label>
+
+  <input
+    type="email"
+    id="register-email"
+    placeholder="nama@email.com"
+    required>
+  <p class="form-note" style="margin:6px 0 0;">Dipakai untuk verifikasi jika Anda lupa kata sandi.</p>
+</div>
+          <div class="field">
+            <label for="register-password">Kata Sandi</label>
+            <div class="password-field">
+              <input type="password" id="register-password" autocomplete="new-password" required>
+              <button type="button" class="password-toggle" data-target="register-password" aria-label="Lihat kata sandi">👁</button>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-block">DAFTAR</button>
+        </form>
+      </div>
+
+      <div style="margin-top:18px;">
+        <a href="index.html" style="font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--ink-soft);">← Kembali ke situs berita</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== DASHBOARD ========== -->
+  <div id="dashboard-view" style="display:none;">
+
+    <div class="dash-topbar">
+      <div class="wrap">
+        <div class="dash-topbar-left">
+          <button type="button" class="pbn-menu-toggle" id="pbn-menu-toggle" aria-label="Buka navigasi" aria-expanded="false" style="position:relative;">
+            <span></span><span></span><span></span>
+            <span class="pbn-inbox-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:#e5484d;color:#fff;border-radius:999px;min-width:16px;height:16px;padding:0 4px;font-size:10px;font-weight:700;line-height:16px;text-align:center;">0</span>
+          </button>
+          <div class="pbn-top-brand">
+            <div class="pbn-top-mark">PBN</div>
+            <div class="pbn-top-brand-text">
+              <strong id="dash-admin-label">Admin Super PBN</strong>
+              <span>REDAKSI CONTROL CENTER</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="dash-actions">
+          <div class="dash-user">
+            <span class="pbn-admin-avatar" id="pbn-admin-avatar">P</span>
+            <div class="pbn-user-copy">
+              <strong id="dash-username"></strong>
+              <span class="role-badge" id="dash-role"></span>
+            </div>
+          </div>
+          <button type="button" class="top-action top-profile" id="profile-dashboard-btn">
+            <span class="top-action-icon">◎</span>
+            <span>Profil Saya</span>
+          </button>
+          <a href="index.html" class="top-action">
+            <span class="top-action-icon">↗</span>
+            <span>Lihat Situs</span>
+          </a>
+          <button type="button" class="top-action top-logout" id="logout-btn">
+            <span class="top-action-icon">↪</span>
+            <span>Keluar</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="dash-main">
+      <div class="wrap">
+
+        <div class="dash-head">
+          <h1 id="dash-title">Dashboard Redaksi</h1>
+        </div>
+
+        <!-- ============ BAGIAN REDAKSI (admin super / admin / reporter) ============ -->
+        <div id="redaksi-section">
+          <div class="pbn-nav-backdrop" id="pbn-nav-backdrop"></div>
+          <aside class="pbn-redaksi-sidebar" id="pbn-redaksi-sidebar">
+            <div class="pbn-sidebar-head">
+              <div>
+                <b>Menu Redaksi</b>
+                <span>Navigasi dashboard</span>
+              </div>
+              <button type="button" class="pbn-sidebar-close" id="pbn-sidebar-close" aria-label="Tutup navigasi">×</button>
+            </div>
+            <div class="pbn-side-menu">
+              <button type="button" class="pbn-side-btn active" data-pbn-view="summary"><span class="pbn-nav-icon">⌂</span><span>Ringkasan</span><span class="pbn-inbox-badge" style="display:none;margin-left:auto;background:#e5484d;color:#fff;border-radius:999px;min-width:18px;height:18px;padding:0 5px;font-size:11px;font-weight:700;line-height:18px;text-align:center;">0</span></button>
+              <button type="button" class="pbn-side-btn" data-pbn-view="content"><span class="pbn-nav-icon">▤</span><span>Semua Konten</span></button>
+               <button type="button" class="pbn-side-btn" data-pbn-view="create"><span class="pbn-nav-icon">＋</span><span>Tambah Konten</span></button>
+              <button type="button" class="pbn-side-btn" data-pbn-role="editor" data-pbn-view="live-settings"><span class="pbn-nav-icon">🔴</span><span>Berita Live</span></button>
+                            <button type="button" class="pbn-side-btn" data-pbn-role="editor" data-pbn-view="moderation"><span class="pbn-nav-icon">◌</span><span>Moderasi</span></button>
+              <div class="pbn-nav-divider" data-pbn-role="editor"></div>
+              <button type="button" class="pbn-side-btn" data-pbn-role="editor" data-pbn-view="papan-desa"><span class="pbn-nav-icon">📋</span><span>Papan Desa</span></button>
+                           <button type="button" class="pbn-side-btn" data-pbn-role="editor" data-pbn-view="papan-desa"><span class="pbn-nav-icon">📋</span><span>Papan Desa</span></button>
+              <button type="button" class="pbn-side-btn" data-pbn-role="editor" data-pbn-view="loker"><span class="pbn-nav-icon">▣</span><span>Info Loker</span></button>
+              <button type="button" class="pbn-side-btn" data-pbn-role="editor" data-pbn-view="ads"><span class="pbn-nav-icon">▰</span><span>Iklan</span></button>
+              <button type="button" class="pbn-side-btn" data-pbn-role="editor" data-pbn-view="shopee-ads"><span class="pbn-nav-icon">🛍</span><span>Iklan Shopee</span></button>
+              <div class="pbn-nav-divider" data-pbn-role="superadmin"></div>
+              <button type="button" class="pbn-side-btn" data-pbn-role="superadmin" data-pbn-view="users"><span class="pbn-nav-icon">♙</span><span>Pengguna</span></button>
+              <button type="button" class="pbn-side-btn" data-pbn-role="superadmin" data-pbn-view="settings"><span class="pbn-nav-icon">⚙</span><span>Widget Harga</span></button>
+            </div>
+            <div class="pbn-sidebar-footer">Pulau Burung News <span>•</span> Pusat Redaksi</div>
+          </aside>
+          <div class="pbn-redaksi-content">
+            <div class="pbn-view pbn-view-summary active">
+              <div class="pbn-page-title"><div><h2>Ringkasan Redaksi</h2><p>Kelola aktivitas portal berita dengan tampilan yang lebih terstruktur.</p></div></div>
+              <div class="stat-row" id="stat-row"></div>
+              <div class="pbn-home-heading"><div><span class="pbn-kicker">INBOX REDAKSI</span><h2>Permintaan Masuk</h2><p>Semua kiriman dan permintaan dari warga ditampilkan langsung di halaman utama dashboard.</p></div></div>
+              <div id="pbn-home-requests" class="pbn-home-requests"><div id="pbn-home-tips"></div><div id="pbn-home-loker"></div><div id="pbn-home-ads"></div></div>
+              <div class="pbn-summary-cards" id="pbn-summary-cards"></div>
+              <div class="pbn-summary-grid"><div class="panel"><h2>Selamat Datang di Pusat Redaksi</h2><p class="form-note">Gunakan navigasi di sebelah kiri untuk mengelola konten, moderasi, pengguna, dan pengaturan.</p></div><div class="panel"><h2>Akses Cepat</h2><div class="pbn-quick-actions"><button type="button" class="btn" data-pbn-view="content">Kelola Konten</button><button type="button" class="btn-secondary" data-pbn-view="create">Tambah Konten</button></div></div></div>
+            </div>
+            <div class="pbn-view" data-pbn-target="content"></div><div class="pbn-view" data-pbn-target="create"></div><div class="pbn-view" data-pbn-target="live-settings"></div><div class="pbn-view" data-pbn-target="moderation"></div><div class="pbn-view" data-pbn-target="papan-desa"></div><div class="pbn-view" data-pbn-target="loker"></div><div class="pbn-view" data-pbn-target="ads"></div><div class="pbn-view" data-pbn-target="shopee-ads"></div><div class="pbn-view" data-pbn-target="users"></div><div class="pbn-view" data-pbn-target="profiles"></div><div class="pbn-view" data-pbn-target="settings"></div>
+          </div>
+
+
+          <div class="dash-grid">
+
+            <!-- Panel daftar konten -->
+            <div class="panel">
+              <h2>Semua Konten</h2>
+              <div class="table-filters">
+                <select id="filter-category"></select>
+                <select id="filter-status">
+                  <option value="">Semua Status</option>
+                  <option value="published">Terbit</option>
+                  <option value="draft">Draf</option>
+                </select>
+              </div>
+              <div style="overflow-x:auto;">
+                <table class="article-table">
+                  <thead>
+                    <tr>
+                      <th style="width:38%;">Judul</th>
+                      <th>Penulis</th>
+                      <th>Tanggal</th>
+                      <th>Status</th>
+                      <th>Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody id="article-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Panel form tambah/ubah -->
+            <div class="panel" id="form-panel">
+               <h2 id="form-title-label">Tambah Konten Baru</h2>
+              <p class="form-note" id="form-contributor-note" style="display:none;color:#1F4B3F;font-weight:600;"></p>
+              <p class="form-note">Berita akan tampil di beranda. Papan Desa akan tampil di bagian "Papan Berita Desa".</p>
+              <form id="article-form">
+                <div class="field">
+                  <label for="field-type">Jenis Konten</label>
+                  <select id="field-type">
+                    <option value="berita">Berita</option>
+                    <option value="papan">Papan Berita Desa</option>
+                    <option value="iklan">Iklan</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label for="field-title">Judul</label>
+                  <input type="text" id="field-title" required>
+                </div>
+
+                <div class="field-row">
+                  <div class="field" id="group-category-wrap">
+                    <label for="field-category">Rubrik</label>
+                    <select id="field-category"></select>
+                  </div>
+                  <div class="field">
+                    <label for="field-village" id="field-village-label">Desa</label>
+                    <input type="text" id="field-village" placeholder="mis. Sungai Simbar">
+                  </div>
+                </div>
+
+                <div class="field" id="group-image">
+                  <label for="field-image">Foto / Gambar</label>
+                  <div class="media-picker">
+                    <img id="field-image-preview" class="media-preview" alt="" style="display:none;">
+                    <div>
+                      <input type="file" id="field-image" accept="image/*">
+                      <button type="button" class="btn-secondary" id="field-image-clear" style="margin-top:8px;">Hapus Foto</button>
+                    </div>
+                  </div>
+                  <p class="form-note" style="margin:8px 0 0;">Maksimal 1.5MB per foto.</p>
+                </div>
+
+                <div class="field" id="group-video">
+                  <label for="field-video">Link Video (opsional)</label>
+                  <input type="url" id="field-video" placeholder="https://youtube.com/watch?v=...">
+                  <p class="form-note" style="margin:8px 0 0;">Tempel link YouTube/Facebook, atau link file video langsung. Upload file video belum didukung karena keterbatasan penyimpanan browser.</p>
+                </div>
+
+                <div id="group-iklan" style="display:none;">
+                  <div class="field-row">
+                    <div class="field">
+                      <label for="field-ad-size">Ukuran Slot Iklan</label>
+                      <select id="field-ad-size">
+                        <option value="besar">Banner Besar (atas halaman)</option>
+                        <option value="kecil">Banner Kecil (tengah halaman)</option>
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label for="field-link">Tautan Tujuan (opsional)</label>
+                      <input type="url" id="field-link" placeholder="https://wa.me/62...">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="field" id="group-excerpt">
+                  <label for="field-excerpt">Ringkasan Singkat</label>
+                  <textarea id="field-excerpt" rows="2"></textarea>
+                </div>
+
+                <div class="field" id="group-content">
+                  <label for="field-content">Isi Berita (satu paragraf per baris)</label>
+                  <textarea id="field-content" rows="6"></textarea>
+                </div>
+
+                <div class="field" id="group-verifikasi">
+                  <label for="field-verifikasi">Status Verifikasi</label>
+                  <select id="field-verifikasi">
+                    <option value="Terverifikasi">Terverifikasi</option>
+                    <option value="Menunggu Verifikasi">Menunggu Verifikasi</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label for="field-status">Status Publikasi</label>
+                  <select id="field-status">
+                    <option value="draft">Simpan sebagai Draf</option>
+                    <option value="published">Terbitkan Sekarang</option>
+                  </select>
+                </div>
+
+                <div id="group-hero-ticker" style="display:flex; gap:20px; flex-wrap:wrap;">
+                  <div class="field-check" id="check-hero-wrap">
+                    <input type="checkbox" id="field-hero">
+                    <label for="field-hero">Jadikan berita utama (Hero)</label>
+                  </div>
+                  <div class="field-check">
+                    <input type="checkbox" id="field-ticker">
+                    <label for="field-ticker">Tampilkan di running text (Breaking)</label>
+                  </div>
+                </div>
+
+                <div class="form-actions">
+                  <button type="submit" class="btn" id="form-submit-btn">Publikasikan / Simpan</button>
+                  <button type="button" class="btn-secondary" id="form-reset">Batal / Bersihkan</button>
+                </div>
+              </form>
+            </div>
+
+          </div>
+
+          <div class="panel" id="live-settings-panel" style="margin-top:28px; display:none;">
+            <h2>🔴 Berita Live (Hero &amp; Ticker)</h2>
+            <p class="form-note">Atur berita mana yang jadi <b>Hero</b> (berita utama beranda) dan mana saja yang tampil di <b>running text</b> (breaking news). Hanya berita berstatus Terbit yang muncul di daftar ini.</p>
+
+            <h3 style="margin-top:20px;">⭐ Hero (Berita Utama)</h3>
+            <p class="form-note">Pilih satu berita sebagai headline utama. Memilih yang baru otomatis melepas hero yang lama.</p>
+            <div id="live-hero-list"></div>
+
+            <h3 style="margin-top:28px;">📰 Running Text (Ticker)</h3>
+            <p class="form-note">Centang berita yang ingin tampil bergerak di running text beranda. Boleh pilih lebih dari satu, atau kosongkan semua.</p>
+            <div id="live-ticker-list"></div>
+          </div>
+
+          <!-- Panel-panel moderasi: admin super & admin saja -->
+          <div id="moderation-panels">
+
+            <div class="panel" id="loker-panel" style="margin-top:28px;">
+              <h2>Permintaan Pasang Info Loker</h2>
+              <p class="form-note">Daftar toko/perusahaan yang mengajukan pemasangan info loker. Hubungi mereka lewat WhatsApp, lalu buat kontennya lewat form "Tambah Konten Baru" dengan rubrik "Info Loker".</p>
+              <div style="overflow-x:auto;">
+                <table class="article-table">
+                  <thead>
+                    <tr>
+                      <th>Foto</th>
+                      <th>Usaha / PJ</th>
+                      <th>WhatsApp</th>
+                      <th>Detail Lowongan</th>
+                      <th>Tanggal</th>
+                      <th>Status</th>
+                      <th>Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody id="loker-request-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- FORM TAMBAH LOKER - KHUSUS SUPER ADMIN -->
+            <div class="panel" id="loker-create-panel" style="margin-top:28px; display:none;">
+              <h2>➕ Tambah Info Loker</h2>
+              <p class="form-note">Form khusus Super Admin untuk membuat dan menerbitkan info loker secara langsung.</p>
+
+              <form id="loker-create-form">
+                <div class="field">
+                  <label for="loker-create-business">Nama Perusahaan / Toko</label>
+                  <input type="text" id="loker-create-business" placeholder="Contoh: PT Pulau Burung" required>
+                </div>
+
+                <div class="field">
+                  <label for="loker-create-contact">Nama Penanggung Jawab</label>
+                  <input type="text" id="loker-create-contact" placeholder="Nama penanggung jawab" required>
+                </div>
+
+                <div class="field">
+                  <label for="loker-create-phone">Nomor WhatsApp</label>
+                  <input type="text" id="loker-create-phone" placeholder="08xxxxxxxxxx" required>
+                </div>
+
+                <div class="field">
+                  <label for="loker-create-detail">Detail Lowongan</label>
+                  <textarea id="loker-create-detail" rows="7" placeholder="Tuliskan posisi, persyaratan, lokasi kerja, gaji, cara melamar, dan informasi lainnya..." required></textarea>
+                </div>
+
+                <div class="field">
+                  <label for="loker-create-image">Foto / Poster Loker</label>
+                  <input type="file" id="loker-create-image" accept="image/*">
+                  <p class="form-note" style="margin:8px 0 0;">Maksimal 1.5MB per foto.</p>
+                </div>
+
+                <div class="field">
+                  <label for="loker-create-status">Status</label>
+                  <select id="loker-create-status">
+                    <option value="baru">Baru</option>
+                    <option value="diproses">Diproses</option>
+                    <option value="selesai">Selesai</option>
+                  </select>
+                </div>
+
+                <div class="form-actions">
+                  <button type="submit" class="btn">SIMPAN &amp; TERBITKAN LOKER</button>
+                  <button type="reset" class="btn-secondary">RESET</button>
+                </div>
+              </form>
+            </div>
+
+            <!-- FORM EDIT LOKER - SUPER ADMIN -->
+            <div class="panel" style="margin-top:28px;">
+              <h2>Info Berita dari Warga</h2>
+              <p class="form-note">Info/tip berita yang dikirim oleh akun pengunjung. Tindak lanjuti lalu buat beritanya lewat form "Tambah Konten Baru".</p>
+              <div style="overflow-x:auto;">
+                <table class="article-table">
+                  <thead>
+                    <tr>
+                      <th>Foto</th>
+                      <th>Judul / Detail</th>
+                      <th>Desa</th>
+                      <th>Pengirim</th>
+                      <th>Tanggal</th>
+                      <th>Status</th>
+                      <th>Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tips-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="panel" id="ads-panel" style="margin-top:28px;">
+              <h2>Permintaan Pasang Iklan</h2>
+              <p class="form-note">Permintaan pasang iklan dari akun pengunjung terdaftar. Setelah menandai "Selesai", buat banner iklannya lewat form "Tambah Konten Baru" dengan Jenis Konten = Iklan.</p>
+              <div style="overflow-x:auto;">
+                <table class="article-table">
+                  <thead>
+                    <tr>
+                      <th>Foto</th>
+                      <th>Usaha</th>
+                      <th>WhatsApp</th>
+                      <th>Detail</th>
+                      <th>Tanggal</th>
+                      <th>Status</th>
+                      <th>Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ads-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- FORM TAMBAH IKLAN - KHUSUS SUPER ADMIN -->
+            <div class="panel" id="ads-create-panel" style="margin-top:28px; display:none;">
+              <h2>➕ Tambah Iklan</h2>
+              <p class="form-note">Form khusus Super Admin untuk membuat dan menerbitkan iklan secara langsung.</p>
+
+              <form id="ads-create-form">
+                <div class="field">
+                  <label for="ads-create-title">Judul Iklan</label>
+                  <input type="text" id="ads-create-title" placeholder="Contoh: Promo Toko Fauzi" required>
+                </div>
+
+                <div class="field">
+                  <label for="ads-create-business">Nama Usaha / Pengiklan</label>
+                  <input type="text" id="ads-create-business" placeholder="Nama usaha" required>
+                </div>
+
+                <div class="field">
+                  <label for="ads-create-phone">Nomor WhatsApp</label>
+                  <input type="text" id="ads-create-phone" placeholder="08xxxxxxxxxx" required>
+                </div>
+
+                <div class="field">
+                  <label for="ads-create-detail">Deskripsi Iklan</label>
+                  <textarea id="ads-create-detail" rows="6" placeholder="Tuliskan isi atau keterangan iklan..." required></textarea>
+                  <div class="field">
+                  <label for="ads-edit-promo">
+                   Teks Promosi Bergerak — EDIT IKLAN
+                  </label>
+
+  <textarea
+    id="ads-edit-promo"
+    rows="5"
+    placeholder="Satu kalimat setiap baris.
+
+Contoh:
+Investasi emas untuk masa depan.
+Mulai menabung emas dari sekarang.
+Emas pilihan untuk investasi jangka panjang.
+Hubungi kami untuk informasi harga hari ini."
+  ></textarea>
+
+  <p class="form-note">
+    Satu baris = satu kalimat. Kalimat akan berganti otomatis di halaman pengunjung.
+  </p>
+</div>
+                  <div class="field">
+<label for="ads-create-promo">
+  Teks Promosi Bergerak — IKLAN BARU
+</label>
+
+  <textarea
+    id="ads-create-promo"
+    rows="5"
+    placeholder="Satu kalimat setiap baris.
+Contoh:
+Investasi emas untuk masa depan.
+Mulai menabung emas dari sekarang.
+Emas pilihan untuk investasi jangka panjang.
+Hubungi kami untuk informasi harga hari ini."
+  ></textarea>
+
+  <p class="form-note">
+    Satu baris = satu kalimat promosi. Kalimat akan berganti otomatis.
+  </p>
+</div>
+                </div>
+
+                <div class="field">
+                  <label for="ads-create-image">Banner / Gambar Iklan</label>
+                  <input type="file" id="ads-create-image" accept="image/*" required>
+                  <p class="form-note" style="margin:8px 0 0;">Maksimal 1.5MB per foto.</p>
+                </div>
+
+                <div class="field-row">
+                  <div class="field">
+                    <label for="ads-create-size">Ukuran Slot Iklan</label>
+                    <select id="ads-create-size">
+                      <option value="besar">Banner Besar (atas halaman)</option>
+                      <option value="kecil">Banner Kecil (tengah halaman)</option>
+                    </select>
+                  </div>
+
+                  <div class="field">
+                    <label for="ads-create-link">Tautan Tujuan (opsional)</label>
+                    <input type="url" id="ads-create-link" placeholder="https://wa.me/62...">
+                  </div>
+                </div>
+
+                <div class="field">
+                  <label for="ads-create-status">Status Publikasi</label>
+                  <select id="ads-create-status">
+                    <option value="published">Terbitkan Sekarang</option>
+                    <option value="draft">Simpan sebagai Draf</option>
+                  </select>
+                </div>
+
+                               <div class="form-actions">
+                  <button type="submit" class="btn">SIMPAN &amp; TERBITKAN IKLAN</button>
+                  <button type="reset" class="btn-secondary">RESET</button>
+                </div>
+              </form>
+            </div>
+
+            <!-- PANEL PAPAN INFORMASI DESA -->
+            <div class="panel" id="papan-desa-panel" style="margin-top:28px;">
+              <h2>📋 Papan Informasi Desa</h2>
+              <p class="form-note">Kelola kartu yang tampil di bagian "Papan Informasi Desa" pada beranda situs. Tiap kartu punya judul, deskripsi singkat, dan daftar poin.</p>
+
+              <div style="overflow-x:auto;">
+                <table class="article-table">
+                  <thead>
+                    <tr>
+                      <th>Judul</th>
+                      <th>Deskripsi</th>
+                      <th>Jumlah Poin</th>
+                      <th>Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody id="papan-desa-tbody"></tbody>
+                </table>
+              </div>
+
+              <div class="market-admin-box" style="margin-top:20px;">
+                <h3 id="papan-desa-form-title">➕ Tambah Kartu Baru</h3>
+                <form id="papan-desa-form">
+                  <input type="hidden" id="papan-desa-edit-id" value="">
+                  <div class="field">
+                    <label for="papan-desa-title">Judul</label>
+                    <input type="text" id="papan-desa-title" placeholder="Contoh: Jajak Pendapat Warga" required>
+                  </div>
+                  <div class="field">
+                    <label for="papan-desa-desc">Deskripsi Singkat</label>
+                    <textarea id="papan-desa-desc" rows="3" placeholder="Jelaskan isi kartu secara singkat..." required></textarea>
+                  </div>
+                  <div class="field">
+                    <label for="papan-desa-items">Daftar Poin (satu poin per baris)</label>
+                    <textarea id="papan-desa-items" rows="4" placeholder="Poin pertama
+Poin kedua
+Poin ketiga"></textarea>
+                  </div>
+                  <div class="form-actions">
+                    <button type="submit" class="btn" id="papan-desa-submit-btn">SIMPAN KARTU</button>
+                    <button type="button" class="btn-secondary" id="papan-desa-cancel-btn" style="display:none;">BATAL UBAH</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+                        <!-- =====================================================
+                 IKLAN PROMO SHOPEE — KHUSUS SUPER ADMIN
+                 ===================================================== -->
+
+            <div
+              class="panel market-admin-panel"
+              id="shopee-ads-panel"
+              style="margin-top:28px; display:none;">
+
+              <h2>🛍 Iklan Promo Shopee</h2>
+              <p class="form-note">
+                Widget kecil pojok kanan atas di halaman pengunjung. Berganti otomatis
+                setiap 3 menit dan tetap muncul lagi walau sempat ditutup (×) pengunjung.
+              </p>
+
+              <div class="field">
+                <label>
+                  <input type="checkbox" id="shopee-enabled">
+                  Aktifkan Widget Iklan Shopee
+                </label>
+              </div>
+
+              <div style="overflow-x:auto;">
+                <table class="article-table">
+                  <thead>
+                    <tr>
+                      <th>Foto</th>
+                      <th>Caption</th>
+                      <th>Link Shopee</th>
+                      <th>Aktif</th>
+                      <th>Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody id="shopee-ads-tbody"></tbody>
+                </table>
+              </div>
+
+              <div class="market-admin-box" style="margin-top:20px;">
+                <h3>➕ Tambah Iklan Baru</h3>
+
+                <form id="shopee-ad-form">
+                  <div class="field">
+                    <label for="shopee-ad-image">Foto atau Video Produk (foto maks. 1MB, video maks. 5MB, rasio 1:1 disarankan)</label>
+                    <input type="file" id="shopee-ad-image" accept="image/*,video/mp4,video/webm" required>
+                    <p class="form-note" style="margin:8px 0 0;">Video disimpan langsung di penyimpanan browser (localStorage), jadi usahakan videonya pendek &amp; kecil supaya tidak gagal tersimpan.</p>
+                  </div>
+
+                  <div class="field">
+                    <label for="shopee-ad-caption">Caption / Kalimat Promo</label>
+                    <input type="text" id="shopee-ad-caption" placeholder="Contoh: Diskon 50% hari ini saja!" required>
+                  </div>
+
+                  <div class="field">
+                    <label for="shopee-ad-link">Link Promo Shopee</label>
+                    <input type="url" id="shopee-ad-link" placeholder="https://shopee.co.id/..." required>
+                  </div>
+
+                  <button type="submit" class="btn-secondary">💾 Tambah Iklan</button>
+                </form>
+              </div>
+
+            </div>
+
+                        <!-- =====================================================
+                 PENGATURAN HARGA KELAPA & EMAS
+                 KHUSUS SUPER ADMIN
+                 ===================================================== -->
+
+            <div
+              class="panel market-admin-panel"
+              id="market-widget-panel"
+              style="margin-top:28px; display:none;">
+
+              <h2>Pengaturan Harga Kelapa &amp; Emas</h2>
+
+              <p class="form-note">
+                Atur informasi yang akan muncul sebagai tombol
+                kecil di pojok kanan bawah situs pengunjung.
+              </p>
+
+              <form id="market-widget-form">
+
+                <div class="market-admin-main-toggle">
+
+                  <label>
+                    <input
+                      type="checkbox"
+                      id="market-enabled">
+                    Tampilkan menu harga di situs
+                  </label>
+
+                </div>
+
+
+                <div class="market-admin-box">
+
+                  <h3>🥥 Harga Kelapa</h3>
+
+                  <div class="field">
+
+                    <label>
+                      <input
+                        type="checkbox"
+                        id="market-kelapa-enabled">
+                      Tampilkan Harga Kelapa
+                    </label>
+
+                  </div>
+
+                  <div class="field">
+
+                    <label for="market-kelapa-title">
+                      Judul
+                    </label>
+
+                    <input
+                      type="text"
+                      id="market-kelapa-title"
+                      placeholder="Harga Kelapa">
+
+                  </div>
+
+                  <div class="field">
+
+                    <label for="market-kelapa-price">
+                      Harga
+                    </label>
+
+                    <input
+                      type="text"
+                      id="market-kelapa-price"
+                      placeholder="Rp 3.500">
+
+                  </div>
+
+                  <div class="field">
+
+                    <label for="market-kelapa-unit">
+                      Satuan
+                    </label>
+
+                    <input
+                      type="text"
+                      id="market-kelapa-unit"
+                      placeholder="per kg">
+
+                  </div>
+
+                  <div class="field">
+
+                    <label for="market-kelapa-note">
+                      Keterangan
+                    </label>
+
+                    <input
+                      type="text"
+                      id="market-kelapa-note"
+                      placeholder="Harga kelapa terbaru.">
+
+                  </div>
+
+                  <div style="margin-top:16px;">
+                    <button type="submit" class="btn-secondary">
+                      💾 Simpan Pengaturan
+                    </button>
+                  </div>
+
+                </div>
+
+
+                <div class="market-admin-box">
+
+                  <h3>🪙 Harga Emas</h3>
+
+                  <div class="field">
+
+                    <label>
+                      <input
+                        type="checkbox"
+                        id="market-emas-enabled">
+                      Tampilkan Harga Emas
+                    </label>
+
+                  </div>
+
+                  <div class="field">
+
+                    <label for="market-emas-title">
+                      Judul
+                    </label>
+
+                    <input
+                      type="text"
+                      id="market-emas-title"
+                      placeholder="Harga Emas">
+
+                  </div>
+
+                  <div class="field">
+
+                    <label>
+                      Daftar Harga Emas (per pecahan)
+                    </label>
+
+                    <div id="emas-denom-list" class="emas-denom-list"></div>
+
+                    <button
+                      type="button"
+                      class="btn-secondary"
+                      id="emas-denom-add"
+                      style="margin-top:8px;">
+                      ➕ Tambah Pecahan Harga
+                    </button>
+
+                    <small>
+                      Isi label pecahan (mis. 0.5 gram, 1 gram, 2 gram), harga jual, dan harga buyback untuk tiap pecahan.
+                    </small>
+
+                  </div>
+
+                  <div class="field">
+
+                    <label for="market-emas-note">
+                      Keterangan
+                    </label>
+
+                    <input
+                      type="text"
+                      id="market-emas-note"
+                      placeholder="Harga emas terbaru.">
+
+                  </div>
+
+                  <div class="field">
+
+                    <label for="market-emas-link">
+                      Link Beli Sekarang / Hubungi Penjual
+                    </label>
+
+                    <input
+                      type="url"
+                      id="market-emas-link"
+                      placeholder="https://wa.me/628xxxxxxxxxx">
+
+                  </div>
+
+                  <div class="field">
+                    <label for="market-emas-phone">
+                      WhatsApp Penjual
+                    </label>
+
+                    <input
+                      type="text"
+                      id="market-emas-phone"
+                      placeholder="Contoh: 081234567890">
+
+                    <small>
+                      Nomor WhatsApp untuk tombol "Pesan Sekarang".
+                    </small>
+                  </div>
+
+                  <div style="margin-top:16px;">
+                    <button type="submit" class="btn-secondary">
+                      💾 Simpan Pengaturan
+                    </button>
+                  </div>
+
+                </div>
+
+                <div class="field">
+
+                  <label for="market-auto-hide">
+                    Tombol menghilang setelah
+                  </label>
+
+                  <select id="market-auto-hide">
+
+                    <option value="5">
+                      5 detik
+                    </option>
+
+                    <option value="10">
+                      10 detik
+                    </option>
+
+                    <option value="15">
+                      15 detik
+                    </option>
+
+                    <option value="20">
+                      20 detik
+                    </option>
+
+                  </select>
+
+                </div>
+
+
+                <div class="form-actions">
+
+                  <button
+                    type="submit"
+                    class="btn">
+                    SIMPAN PENGATURAN
+                  </button>
+
+                </div>
+
+              </form>
+
+            </div>
+            
+            <div class="panel" style="margin-top:28px;">
+              <h2>Komentar Pengunjung</h2>
+              <p class="form-note">Komentar yang dikirim akun pengunjung. Sembunyikan komentar yang tidak pantas.</p>
+              <div style="overflow-x:auto;">
+                <table class="article-table">
+                  <thead>
+                    <tr>
+                      <th>Berita</th>
+                      <th>Komentar</th>
+                      <th>Pengirim</th>
+                      <th>Tanggal</th>
+                      <th>Status</th>
+                      <th>Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody id="comments-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+
+          <!-- Panel Manajemen Pengguna: admin super saja -->
+          <div class="panel" id="users-panel" style="margin-top:28px;">
+            <h2>Manajemen Pengguna</h2>
+            <p class="form-note">Hanya admin super yang bisa mengubah peran akun — misalnya menaikkan pengunjung jadi reporter, atau mengembalikannya jadi pengunjung.</p>
+            <div class="stat-row" id="users-stat-row" style="margin-bottom:16px;"></div>
+            <div class="table-filters">
+              <input type="text" id="users-search" placeholder="Cari nama, username, email, atau no. WhatsApp..." style="min-width:280px;">
+              <span class="art-meta" id="users-count-label" style="align-self:center;"></span>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="article-table">
+                <thead>
+                  <tr>
+                    <th>Nama</th>
+                    <th>Username</th>
+                    <th>Peran</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="users-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        </div>
+        <!-- ============ BAGIAN PENGUNJUNG ============ -->
+        <div id="pengunjung-section" style="display:none;">
+
+          <div class="dash-grid">
+
+            <div class="panel">
+              <h2>Riwayat Pengajuan Saya</h2>
+              <div style="overflow-x:auto;">
+                <table class="article-table">
+                  <thead>
+                    <tr>
+                      <th>Jenis</th>
+                      <th>Ringkasan</th>
+                      <th>Tanggal</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="my-submissions-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="panel">
+              <h2>Kirim Info Berita</h2>
+              <p class="form-note">Punya info kejadian di desa Anda? Kirim ke redaksi, nanti akan ditindaklanjuti oleh reporter/admin.</p>
+              <form id="tip-form">
+                <div class="field">
+                  <label for="tip-title">Judul / Ringkasan Kejadian</label>
+                  <input type="text" id="tip-title" required>
+                </div>
+                <div class="field">
+                  <label for="tip-village">Desa</label>
+                  <input type="text" id="tip-village">
+                </div>
+                <div class="field">
+                  <label for="tip-phone">Nomor WhatsApp</label>
+                  <input type="text" id="tip-phone" placeholder="08xxxxxxxxxx" required>
+                </div>
+                <div class="field">
+                  <label for="tip-detail">Detail Kejadian</label>
+                  <textarea id="tip-detail" rows="4" required></textarea>
+                </div>
+                <div class="field">
+                  <label for="tip-image">Lampirkan Foto (opsional)</label>
+                  <input type="file" id="tip-image" accept="image/*">
+                </div>
+                <button type="submit" class="btn btn-block">KIRIM INFO BERITA</button>
+              </form>
+            </div>
+
+            <div class="panel">
+              <h2>Ajukan Info Loker</h2>
+              <form id="pv-loker-form">
+                <div class="field">
+                  <label for="pv-loker-business">Nama Toko / Perusahaan</label>
+                  <input type="text" id="pv-loker-business" required>
+                </div>
+                <div class="field">
+                  <label for="pv-loker-phone">Nomor WhatsApp</label>
+                  <input type="text" id="pv-loker-phone" required>
+                </div>
+                <div class="field">
+                  <label for="pv-loker-detail">Detail Lowongan</label>
+                  <textarea id="pv-loker-detail" rows="4" required></textarea>
+                </div>
+                <div class="field">
+                  <label for="pv-loker-image">Lampirkan Foto (opsional)</label>
+                  <input type="file" id="pv-loker-image" accept="image/*">
+                </div>
+                <button type="submit" class="btn btn-block">AJUKAN INFO LOKER</button>
+              </form>
+            </div>
+
+            <div class="panel">
+              <h2>Ajukan Permintaan Iklan</h2>
+              <form id="ad-form">
+                <div class="field">
+                  <label for="ad-business">Nama Usaha</label>
+                  <input type="text" id="ad-business" required>
+                </div>
+                <div class="field">
+                  <label for="ad-phone">Nomor WhatsApp</label>
+                  <input type="text" id="ad-phone" required>
+                </div>
+                <div class="field">
+                  <label for="ad-detail">Detail Iklan yang Diinginkan</label>
+                  <textarea id="ad-detail" rows="4" required></textarea>
+                </div>
+                <div class="field">
+                  <label for="ad-image">Lampirkan Foto/Materi Iklan (opsional)</label>
+                  <input type="file" id="ad-image" accept="image/*">
+                </div>
+                <button type="submit" class="btn btn-block">AJUKAN PASANG IKLAN</button>
+              </form>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+  <!-- =====================================================
+     MODAL PROFIL SAYA
+     ===================================================== -->
+
+<div class="modal-overlay" id="dashboard-profile-overlay">
+
+  <div class="modal-box profile-modal-box">
+
+    <button
+      type="button"
+      class="modal-close"
+      id="dashboard-profile-close">
+      ×
+    </button>
+
+    <h2>Profil Saya</h2>
+
+    <p class="form-note">Perbarui data akun Anda. Perubahan akan langsung disimpan.</p>
+
+    <form id="dashboard-profile-form">
+
+      <div class="profile-avatar-area">
+
+        <img
+          id="dashboard-profile-avatar-preview"
+          class="dashboard-profile-avatar"
+          src=""
+          alt="Foto Profil">
+
+        <div>
+          <label for="dashboard-profile-avatar">
+            Foto Profil
+          </label>
+
+          <input
+            type="file"
+            id="dashboard-profile-avatar"
+            accept="image/*">
+
+          <p class="form-note">
+            Maksimal 1MB.
+          </p>
+        </div>
+
+      </div>
+
+      <div class="field">
+        <label for="dashboard-profile-username">
+          Username
+        </label>
+
+        <input
+          type="text"
+          id="dashboard-profile-username"
+          autocomplete="username"
+          required>
+
+        <p class="form-note">
+          Username digunakan untuk masuk ke akun.
+        </p>
+      </div>
+
+      <div class="field">
+        <label for="dashboard-profile-name">
+          Nama Lengkap
+        </label>
+
+        <input
+          type="text"
+          id="dashboard-profile-name"
+          required>
+      </div>
+
+      <div class="field">
+        <label for="dashboard-profile-phone">
+          Nomor HP / WhatsApp
+        </label>
+
+        <input
+          type="text"
+          id="dashboard-profile-phone">
+      </div>
+
+      <div class="field">
+        <label for="dashboard-profile-email">
+          Email
+        </label>
+
+        <input
+          type="email"
+          id="dashboard-profile-email"
+          placeholder="nama@email.com">
+      </div>
+
+      <div class="field">
+        <label for="dashboard-profile-password">
+          Password Baru
+        </label>
+
+        <input
+          type="password"
+          id="dashboard-profile-password"
+          autocomplete="new-password"
+          placeholder="Kosongkan jika tidak ingin mengganti">
+      </div>
+
+      <div class="form-actions">
+
+        <button
+          type="submit"
+          class="btn"
+          id="dashboard-profile-save">
+          SIMPAN PERUBAHAN
+        </button>
+
+        <button
+          type="button"
+          class="btn-secondary"
+          id="dashboard-profile-cancel">
+          BATAL
+        </button>
+
+      </div>
+
+    </form>
+
+    <div class="profile-danger-zone">
+
+      <h3>Zona Berbahaya</h3>
+
+      <p>
+        Menghapus akun akan menghilangkan akses Anda
+        ke dashboard.
+      </p>
+
+      <button
+        type="button"
+        class="btn-danger"
+        id="dashboard-profile-delete">
+        HAPUS AKUN SAYA
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+   <!-- Modal Lupa Kata Sandi -->
+  <div class="modal-overlay" id="forgot-password-overlay">
+    <div class="modal-box" style="max-width:420px;">
+      <button type="button" class="modal-close" id="forgot-password-close">×</button>
+
+      <div id="forgot-step-verify">
+        <h2>Lupa Kata Sandi</h2>
+        <p class="form-note">Masukkan username, email, dan nomor WhatsApp yang Anda daftarkan untuk memverifikasi identitas Anda.</p>
+        <div class="login-error" id="forgot-verify-error"></div>
+        <form id="forgot-verify-form">
+          <div class="field">
+            <label for="forgot-username">Username</label>
+            <input type="text" id="forgot-username" required>
+          </div>
+          <div class="field">
+            <label for="forgot-email">Email Terdaftar</label>
+            <input type="email" id="forgot-email" required>
+          </div>
+          <div class="field">
+            <label for="forgot-phone">Nomor WhatsApp Terdaftar</label>
+            <input type="text" id="forgot-phone" placeholder="08xxxxxxxxxx" required>
+          </div>
+          <button type="submit" class="btn btn-block">VERIFIKASI IDENTITAS</button>
+        </form>
+      </div>
+
+      <div id="forgot-step-reset" style="display:none;">
+        <h2>Buat Kata Sandi Baru</h2>
+        <p class="form-note">Identitas terverifikasi. Silakan buat kata sandi baru untuk akun Anda.</p>
+        <div class="login-error" id="forgot-reset-error"></div>
+        <form id="forgot-reset-form">
+          <div class="field">
+            <label for="forgot-new-password">Kata Sandi Baru</label>
+            <div class="password-field">
+              <input type="password" id="forgot-new-password" autocomplete="new-password" required minlength="4">
+              <button type="button" class="password-toggle" data-target="forgot-new-password" aria-label="Lihat kata sandi">👁</button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="forgot-new-password-confirm">Ulangi Kata Sandi Baru</label>
+            <div class="password-field">
+              <input type="password" id="forgot-new-password-confirm" autocomplete="new-password" required minlength="4">
+              <button type="button" class="password-toggle" data-target="forgot-new-password-confirm" aria-label="Lihat kata sandi">👁</button>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-block">SIMPAN KATA SANDI BARU</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+    <!-- Modal Detail Pengguna (khusus Admin Super) -->
+  <div class="modal-overlay" id="user-detail-overlay">
+    <div class="modal-box profile-modal-box">
+      <button type="button" class="modal-close" id="user-detail-close">×</button>
+      <h2>Detail Pengguna</h2>
+      <p class="form-note">Informasi akun lengkap — hanya terlihat oleh Admin Super.</p>
+
+      <div class="field">
+        <label>Nama Lengkap</label>
+        <input type="text" id="user-detail-name" readonly>
+      </div>
+      <div class="field">
+        <label>Username</label>
+        <input type="text" id="user-detail-username" readonly>
+      </div>
+      <div class="field">
+        <label>Peran</label>
+        <input type="text" id="user-detail-role" readonly>
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input type="text" id="user-detail-email" readonly>
+      </div>
+      <div class="field">
+        <label>Nomor WhatsApp</label>
+        <input type="text" id="user-detail-phone" readonly>
+      </div>
+      <div class="field">
+        <label>Kata Sandi</label>
+        <div class="password-field">
+          <input type="password" id="user-detail-password" readonly>
+          <button type="button" class="password-toggle" data-target="user-detail-password" aria-label="Lihat kata sandi">👁</button>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn-secondary" id="user-detail-close-btn">TUTUP</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pulau Burung News — Dari Pulau Burung, Untuk Semua</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="utility-bar">
+    <div class="wrap">
+      <div class="date" id="current-date">Kec. Pulau Burung, Indragiri Hilir</div>
+      <div class="social">
+        <span>Facebook</span><span>Instagram</span><span>TikTok</span><span>Kanal WhatsApp</span>
+        <div class="auth-area" id="auth-area"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ticker" id="ticker-bar">
+    <div class="wrap">
+      <div class="ticker-label"><span class="ticker-dot"></span>Pulau Burung News</div>
+      <div class="ticker-track">
+        <div class="ticker-move" id="ticker-move"></div>
+      </div>
+    </div>
+  </div>
+
+  <header class="masthead">
+    <div class="wrap">
+      <div class="brand">
+        <div class="brand-mark">PBN</div>
+        <div>
+          <div class="brand-name">Pulau Burung News</div>
+          <div class="brand-tag">DARI PULAU BURUNG, UNTUK SEMUA</div>
+        </div>
+      </div>
+      <div class="search-box">
+        <input type="text" id="search-input" placeholder="Cari berita... (Enter)">
+        <span>⌕</span>
+      </div>
+    </div>
+  </header>
+
+    <nav class="primary">
+    <div class="wrap">
+      <a href="#" data-category="" class="active">Beranda</a>
+      <a href="#" data-category="Pulau Burung">Pulau Burung</a>
+      <a href="#" data-category="Berita Desa">Berita Desa</a>
+      <a href="#" data-category="Peristiwa">Peristiwa</a>
+      <a href="#" data-category="Pemerintahan">Pemerintahan</a>
+      <a href="#" data-category="Ekonomi">Ekonomi</a>
+      <a href="#" data-category="Pendidikan">Pendidikan</a>
+      <a href="#" data-category="Olahraga">Olahraga</a>
+      <a href="#" data-category="Info Loker">Info Loker</a>
+      <div class="nav-more" id="nav-more" style="display:none;">
+        <button type="button" class="nav-more-btn" id="nav-more-btn">Lainnya ▾</button>
+        <div class="nav-more-menu" id="nav-more-menu"></div>
+      </div>
+    </div>
+    <div class="nav-profile-mini" id="nav-profile-mini"></div>
+  </nav>
+
+  <!-- Salinan ticker, muncul lewat JS hanya saat ticker asli sudah
+       tertutup nav sticky di atasnya (lihat bindStickyTicker di main.js) -->
+  <div class="ticker ticker-sticky-clone" id="ticker-sticky-clone">
+    <div class="wrap">
+      <div class="ticker-label"><span class="ticker-dot"></span>Pulau Burung News</div>
+      <div class="ticker-track">
+        <div class="ticker-move" id="ticker-move-sticky"></div>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <div class="wrap">
+
+      <div class="filter-banner" id="filter-banner" style="display:none;"></div>
+
+      <!-- HERO -->
+      <section class="hero-grid">
+        <div class="hero" id="hero-content"></div>
+        <div class="side-list" id="hero-side"></div>
+      </section>
+
+      <!-- TERBARU + TERPOPULER -->
+      <section class="cols">
+        <div>
+          <div class="section-head"><h2>Berita Terbaru</h2><span class="see-all">DIPERBARUI OTOMATIS</span></div>
+          <div id="terbaru-list"></div>
+        </div>
+
+        <div>
+          <div class="section-head"><h2>Terpopuler</h2></div>
+          <div class="rank-list" id="terpopuler-list"></div>
+        </div>
+      </section>
+
+      <!-- AD SLOT -->
+      <div class="ad-slot" id="ad-slot-besar">
+        RUANG IKLAN — 728×90
+        <span>pasang iklan bisnis lokal Anda di sini · hubungi redaksi</span>
+      </div>
+
+      <!-- SIGNATURE: PAPAN INFORMASI DESA -->
+      <section class="dermaga">
+        <div class="wrap">
+                    <div class="section-head"><h2>Papan Informasi Desa</h2><span class="see-all"></span></div>
+          <p class="dermaga-note"></p>
+                    <div class="board-carousel">
+            <button type="button" class="board-nav board-nav-prev" id="board-prev" aria-label="Sebelumnya">←</button>
+            <div class="board-viewport" id="board-viewport">
+              <div class="board-track" id="board-rows"></div>
+            </div>
+            <button type="button" class="board-nav board-nav-next" id="board-next" aria-label="Berikutnya">→</button>
+          </div>
+          <div class="board-dots" id="board-dots"></div>
+        </div>
+      </section>
+
+      <!-- PERISTIWA GRID -->
+      <section>
+        <div class="section-head"><h2>Peristiwa</h2><span class="see-all">LIHAT SEMUA →</span></div>
+        <div class="grid-3" id="peristiwa-grid"></div>
+      </section>
+
+      <!-- INFO LOKER -->
+      <section style="padding-bottom:44px; margin-bottom:44px; border-bottom:1px solid var(--line);">
+        <div class="loker-head">
+          <div>
+            <div class="section-head" style="border-bottom:none; padding-bottom:0; margin-bottom:6px;"><h2>Info Loker</h2></div>
+            <p class="loker-note">Lowongan kerja dari toko dan perusahaan di sekitar Pulau Burung. Punya usaha dan ingin memasang info loker di sini? Ajukan lewat tombol di samping.</p>
+          </div>
+          <button class="btn" id="open-loker-form">AJUKAN PASANG INFO LOKER →</button>
+        </div>
+        <div class="grid-3" id="loker-grid"></div>
+      </section>
+
+      <!-- CTA KIRIM BERITA -->
+      <section class="cta">
+        <div>
+          <h2>Punya Informasi?</h2>
+          <p>Kirim foto, video, atau informasi kejadian di sekitar Anda. Tim redaksi akan memverifikasi sebelum dipublikasikan.</p>
+        </div>
+        <a href="tentang.html?page=kirim" class="btn" id="cta-kirim-link">KIRIM →</a>
+      </section>
+
+    </div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand">Pulau Burung News</div>
+          <p>Media informasi lokal kecamatan Pulau Burung, Indragiri Hilir, Riau. Cepat, dekat, dan terpercaya.</p>
+        </div>
+        <div>
+          <h4>Rubrik</h4>
+          <a href="#" data-category="Pulau Burung">Pulau Burung</a>
+          <a href="#" data-category="Berita Desa">Berita Desa</a>
+          <a href="#" data-category="Peristiwa">Peristiwa</a>
+          <a href="#" data-category="Ekonomi">Ekonomi</a>
+        </div>
+        <div>
+          <h4>Tentang</h4>
+          <a href="tentang.html?page=redaksi">Redaksi</a>
+          <a href="tentang.html?page=pedoman">Pedoman Media Siber</a>
+          <a href="tentang.html?page=privasi">Kebijakan Privasi</a>
+          <a href="tentang.html?page=koreksi">Koreksi Berita</a>
+        </div>
+        <div>
+          <h4>Kerja Sama</h4>
+          <a href="tentang.html?page=iklan">Pasang Iklan</a>
+          <a href="tentang.html?page=kirim">Kirim Berita</a>
+          <a href="tentang.html?page=kontak">Kontak Redaksi</a>
+        </div>
+      </div>
+      <div class="bottom-bar">
+        <span>© 2026 Pulau Burung News. Seluruh hak cipta dilindungi.</span>
+        <span>Kecamatan Pulau Burung, Indragiri Hilir, Riau</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Modal baca artikel -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal-box" id="modal-content"></div>
+  </div>
+
+  <!-- Modal khusus iklan (terpisah dari modal berita, supaya menutup iklan
+       tidak ikut menutup modal berita yang sedang dibuka di baliknya) -->
+  <div class="modal-overlay" id="ad-modal-overlay" style="z-index:10000;">
+    <div class="modal-box" id="ad-modal-content" style="max-width:480px;"></div>
+  </div>
+
+  <!-- Modal ajukan pasang info loker -->
+  <div class="modal-overlay" id="loker-modal-overlay">
+    <div class="modal-box" style="max-width:480px;">
+      <button class="modal-close" id="loker-modal-close">×</button>
+      <h1 style="font-size:22px;">Ajukan Pasang Info Loker</h1>
+      <p class="loker-note" style="margin-top:0;">Isi data berikut. Admin redaksi akan menghubungi Anda untuk konfirmasi sebelum info loker ditayangkan.</p>
+      <form id="loker-request-form" class="loker-form-fields">
+        <div class="field">
+          <label for="loker-business">Nama Toko / Perusahaan</label>
+          <input type="text" id="loker-business" required>
+        </div>
+        <div class="field">
+          <label for="loker-contact">Nama Penanggung Jawab</label>
+          <input type="text" id="loker-contact" required>
+        </div>
+        <div class="field">
+          <label for="loker-phone">Nomor WhatsApp</label>
+          <input type="text" id="loker-phone" required>
+        </div>
+        <div class="field">
+          <label for="loker-detail">Detail Lowongan (posisi, syarat, kontak)</label>
+          <textarea id="loker-detail" required></textarea>
+        </div>
+        <div class="field">
+          <label for="loker-image">Lampirkan Foto (opsional)</label>
+          <input type="file" id="loker-image" accept="image/*">
+        </div>
+        <button type="submit" class="btn" style="width:100%; border:none;">KIRIM PERMINTAAN</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal perbarui profil -->
+  <div class="modal-overlay" id="profile-modal-overlay">
+    <div class="modal-box" style="max-width:420px;">
+      <button class="modal-close" id="profile-modal-close">×</button>
+      <h1 style="font-size:22px;">Perbarui Profil</h1>
+      <p class="loker-note" style="margin-top:0;">Ubah nama, nomor WhatsApp, atau kata sandi akun Anda.</p>
+      <form id="profile-form" class="loker-form-fields">
+        <div class="field avatar-field">
+          <label for="profile-avatar">Foto Profil</label>
+          <div class="avatar-picker">
+            <img id="profile-avatar-preview" class="avatar-preview" alt="Foto profil">
+            <input type="file" id="profile-avatar" accept="image/*">
+          </div>
+        </div>
+        <div class="field">
+          <label for="profile-name">Nama Lengkap</label>
+          <input type="text" id="profile-name" required>
+        </div>
+        <div class="field">
+          <label for="profile-phone">Nomor WhatsApp</label>
+          <input type="text" id="profile-phone">
+        </div>
+        <div class="field">
+          <label for="profile-password">Kata Sandi Baru (kosongkan jika tidak ganti)</label>
+          <input type="password" id="profile-password" autocomplete="new-password">
+        </div>
+        <button type="submit" class="btn" style="width:100%; border:none;">SIMPAN PERUBAHAN</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- =====================================================
+       FLOATING HARGA KELAPA & EMAS
+       ===================================================== -->
+
+  <div
+    id="market-widget"
+    class="market-widget"
+    style="display:none;">
+
+    <div
+      class="market-widget-buttons"
+      id="market-widget-buttons">
+
+<button
+  type="button"
+  class="market-mini-btn"
+  data-market="kelapa">
+  🥥 <span>Info Harga Kelapa</span>
+</button>
+
+<button
+  type="button"
+  class="market-mini-btn"
+  data-market="emas">
+  🪙 <span>Info Harga Emas</span>
+</button>
+
+    </div>
+
+    <div
+      class="market-widget-card"
+      id="market-widget-card"
+      style="display:none;">
+
+      <button
+        type="button"
+        class="market-widget-close"
+        id="market-widget-close">
+        ×
+      </button>
+
+      <div id="market-widget-content"></div>
+
+    </div>
+
+  </div>
+
+  <!-- =====================================================
+       FLOATING IKLAN PROMO SHOPEE
+       ===================================================== -->
+
+  <div
+    id="shopee-widget"
+    class="shopee-widget"
+    style="display:none;">
+
+    <button
+      type="button"
+      class="shopee-widget-close"
+      id="shopee-widget-close"
+      aria-label="Tutup iklan">
+      ×
+    </button>
+
+    <a
+      href="#"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="shopee-widget-link"
+      id="shopee-widget-link">
+
+      <div class="shopee-widget-media" id="shopee-widget-media"></div>
+
+      <div class="shopee-widget-overlay">
+        <span class="shopee-widget-badge">PROMO SHOPEE</span>
+        <div class="shopee-widget-caption" id="shopee-widget-caption"></div>
+        <span class="shopee-widget-cta">Beli Sekarang →</span>
+      </div>
+
+    </a>
+
+  </div>
+
+  <script src="js/data.js"></script>                                                                                                                                                                                                                                                                                                                            
+  <script src="js/main.js"></script>
+</body>
+</html>
