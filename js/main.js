@@ -848,44 +848,52 @@ function bindNavProfileScroll() {
   const nav = document.querySelector('nav.primary');
   if (!el || !nav) return;
 
-  let wasStuck = null;
+  // Paksa status awal selalu tersembunyi, apa pun kondisi layout saat load.
+  el.classList.remove('nav-profile-mini-visible');
 
-  function openOverflowNow() {
-    el.classList.toggle('nav-profile-mini-overflow-open', el.classList.contains('nav-profile-mini-visible'));
-  }
-
-  function update() {
-    const stuck = nav.getBoundingClientRect().top <= 0;
-    if (stuck === wasStuck) return;
-    wasStuck = stuck;
+  function setVisible(stuck) {
     el.classList.toggle('nav-profile-mini-visible', stuck);
-
-    // Jika ikon langsung tampil tanpa melewati transisi lebar (mis. di HP
-    // saat load pertama), transitionend di bawah tidak akan terpicu.
-    // Fallback: buka overflow segera, jangan menunggu event yang mungkin
-    // tidak pernah datang.
-    if (!('ontransitionend' in el) || getComputedStyle(el).transitionDuration === '0s') {
-      openOverflowNow();
-    }
   }
 
-  update();
-  window.addEventListener('scroll', update, { passive: true });
-  window.addEventListener('resize', update);
+  // Sentinel: elemen tak terlihat yang ditaruh tepat SEBELUM nav di alur
+  // dokumen. Selama sentinel ini masih terlihat di viewport, artinya nav
+  // BELUM menempel ke atas. Begitu sentinel keluar dari viewport (discroll
+  // lewat), berarti nav sudah stuck — baru saat itu ikon dimunculkan.
+  // Pendekatan ini jauh lebih stabil daripada scroll+getBoundingClientRect,
+  // karena tidak bergantung pada timing event scroll yang sering meleset
+  // di mode simulasi/emulasi mobile.
+  let sentinel = document.getElementById('pbn-nav-sentinel');
+  if (!sentinel) {
+    sentinel = document.createElement('div');
+    sentinel.id = 'pbn-nav-sentinel';
+    sentinel.style.cssText = 'position:relative;height:0;width:0;';
+    nav.parentNode.insertBefore(sentinel, nav);
+  }
 
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        setVisible(!entry.isIntersecting);
+      });
+    }, { threshold: 0 });
+    observer.observe(sentinel);
+  } else {
+    // Fallback browser lama: cara lama tetap dipasang sebagai cadangan.
+    function update() {
+      const scrolled = (window.scrollY || window.pageYOffset || 0) > 4;
+      setVisible(scrolled && nav.getBoundingClientRect().top <= 0);
+    }
+    update();
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+  }
+
+  // Overflow sudah dibuka langsung lewat CSS (class nav-profile-mini-visible),
+  // jadi transitionend di sini hanya dipakai untuk merapikan ulang menu
+  // "Lainnya" pada nav, bukan lagi untuk membuka overflow dropdown.
   el.addEventListener('transitionend', (e) => {
     if (e.propertyName !== 'width') return;
     if (typeof pbnUpdateNavOverflow === 'function') pbnUpdateNavOverflow();
-    openOverflowNow();
-  });
-
-  // Pengaman tambahan: kalau dropdown di dalam ikon ini di-klik untuk
-  // dibuka tapi overflow parent belum sempat kebuka (kasus transitionend
-  // gagal terpicu), paksa buka overflow saat tombolnya ditekan.
-  el.addEventListener('click', () => {
-    if (el.classList.contains('nav-profile-mini-visible')) {
-      openOverflowNow();
-    }
   });
 }
 
