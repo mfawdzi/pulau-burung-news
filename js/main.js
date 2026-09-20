@@ -10,7 +10,13 @@ const PBN_DEFAULT_AVATAR = 'data:image/svg+xml;utf8,' + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56"><rect width="56" height="56" fill="#E3DAC4"/><circle cx="28" cy="22" r="10" fill="#5C5745"/><path d="M8 50c2-12 12-18 20-18s18 6 20 18" fill="#5C5745"/></svg>'
 );
 
-console.log('PBN MAIN.JS VERSION: TEST-999');
+// Cegah browser mengembalikan posisi scroll lama saat reload/navigasi
+// balik — supaya ikon akun di nav selalu mulai dari status "belum
+// discroll" tiap kali halaman benar-benar dimuat ulang.
+if ('scrollRestoration' in history) {
+  history.scrollRestoration = 'manual';
+}
+window.scrollTo(0, 0);
 
 document.addEventListener('DOMContentLoaded', () => {
   renderDate();
@@ -511,12 +517,6 @@ function bindBoardCarousel(total) {
   if (!window._pbnBoardResizeBound) {
     window._pbnBoardResizeBound = true;
     window.addEventListener('resize', () => {
-      const newPerView = pbnBoardPerView();
-      if (newPerView !== PBN_BOARD_PER_VIEW) {
-        PBN_BOARD_PER_VIEW = newPerView;
-        PBN_BOARD_INDEX = 0;
-        renderBoardDots(total);
-      }
       updateBoardPosition();
     });
   }
@@ -854,20 +854,18 @@ function bindNavProfileScroll() {
   let wasStuck = false;
 
   function update() {
-    // Ambil ulang posisi nav secara langsung tiap kali dipanggil.
     const navTop = nav.getBoundingClientRect().top;
-    const stuck = navTop <= 0;
-
-    console.log('[PBN nav-profile] navTop=' + navTop.toFixed(1) + ' stuck=' + stuck + ' wasStuck=' + wasStuck);
+    const scrollY = window.scrollY || window.pageYOffset || 0;
+    // Syarat ganda: nav harus benar-benar menempel DAN halaman memang
+    // sedang dalam posisi discroll — mencegah kondisi awal yang salah
+    // baca akibat scroll restoration browser atau reflow viewport.
+    const stuck = navTop <= 0 && scrollY > 0;
 
     if (stuck === wasStuck) return;
     wasStuck = stuck;
     el.classList.toggle('nav-profile-mini-visible', stuck);
   }
 
-  // Tunda pengecekan pertama ke frame render berikutnya, supaya layout
-  // (gambar, font, ticker) sudah selesai settle dulu sebelum status awal
-  // dihitung — mencegah salah baca posisi nav saat DOM baru selesai dibuat.
   requestAnimationFrame(() => {
     requestAnimationFrame(update);
   });
