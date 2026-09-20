@@ -576,7 +576,6 @@ nav.primary .wrap{
 }
 
 @media (max-width:520px){
-  .nav-profile-mini{ width:44px; }
   .nav-profile-mini-icon{ width:26px; height:26px; }
 }
 
