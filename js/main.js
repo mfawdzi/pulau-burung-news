@@ -850,49 +850,31 @@ function bindNavProfileScroll() {
   const nav = document.querySelector('nav.primary');
   if (!el || !nav) return;
 
-  // Paksa status awal selalu tersembunyi, apa pun kondisi layout saat load.
   el.classList.remove('nav-profile-mini-visible');
+  let wasStuck = false;
 
-  function setVisible(stuck) {
+  function update() {
+    // Ambil ulang posisi nav secara langsung tiap kali dipanggil.
+    const navTop = nav.getBoundingClientRect().top;
+    const stuck = navTop <= 0;
+
+    console.log('[PBN nav-profile] navTop=' + navTop.toFixed(1) + ' stuck=' + stuck + ' wasStuck=' + wasStuck);
+
+    if (stuck === wasStuck) return;
+    wasStuck = stuck;
     el.classList.toggle('nav-profile-mini-visible', stuck);
   }
 
-  // Sentinel: elemen tak terlihat yang ditaruh tepat SEBELUM nav di alur
-  // dokumen. Selama sentinel ini masih terlihat di viewport, artinya nav
-  // BELUM menempel ke atas. Begitu sentinel keluar dari viewport (discroll
-  // lewat), berarti nav sudah stuck — baru saat itu ikon dimunculkan.
-  // Pendekatan ini jauh lebih stabil daripada scroll+getBoundingClientRect,
-  // karena tidak bergantung pada timing event scroll yang sering meleset
-  // di mode simulasi/emulasi mobile.
-  let sentinel = document.getElementById('pbn-nav-sentinel');
-  if (!sentinel) {
-    sentinel = document.createElement('div');
-    sentinel.id = 'pbn-nav-sentinel';
-    sentinel.style.cssText = 'position:relative;height:0;width:0;';
-    nav.parentNode.insertBefore(sentinel, nav);
-  }
+  // Tunda pengecekan pertama ke frame render berikutnya, supaya layout
+  // (gambar, font, ticker) sudah selesai settle dulu sebelum status awal
+  // dihitung — mencegah salah baca posisi nav saat DOM baru selesai dibuat.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(update);
+  });
 
-  if ('IntersectionObserver' in window) {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        setVisible(!entry.isIntersecting);
-      });
-    }, { threshold: 0 });
-    observer.observe(sentinel);
-  } else {
-    // Fallback browser lama: cara lama tetap dipasang sebagai cadangan.
-    function update() {
-      const scrolled = (window.scrollY || window.pageYOffset || 0) > 4;
-      setVisible(scrolled && nav.getBoundingClientRect().top <= 0);
-    }
-    update();
-    window.addEventListener('scroll', update, { passive: true });
-    window.addEventListener('resize', update);
-  }
+  window.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', update);
 
-  // Overflow sudah dibuka langsung lewat CSS (class nav-profile-mini-visible),
-  // jadi transitionend di sini hanya dipakai untuk merapikan ulang menu
-  // "Lainnya" pada nav, bukan lagi untuk membuka overflow dropdown.
   el.addEventListener('transitionend', (e) => {
     if (e.propertyName !== 'width') return;
     if (typeof pbnUpdateNavOverflow === 'function') pbnUpdateNavOverflow();
