@@ -10,6 +10,8 @@ const PBN_DEFAULT_AVATAR = 'data:image/svg+xml;utf8,' + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56"><rect width="56" height="56" fill="#E3DAC4"/><circle cx="28" cy="22" r="10" fill="#5C5745"/><path d="M8 50c2-12 12-18 20-18s18 6 20 18" fill="#5C5745"/></svg>'
 );
 
+console.log('PBN MAIN.JS VERSION: TEST-999');
+
 document.addEventListener('DOMContentLoaded', () => {
   renderDate();
   renderAll();
