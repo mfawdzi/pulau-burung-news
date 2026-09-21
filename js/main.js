@@ -459,6 +459,27 @@ function updateBoardPosition() {
   }
 }
 
+let PBN_BOARD_AUTO_TIMER = null;
+const PBN_BOARD_AUTO_MS = 5000; // 5 detik
+
+function startBoardAutoRotate(total) {
+  clearInterval(PBN_BOARD_AUTO_TIMER);
+  if (total <= 1) return; // tidak perlu auto-geser kalau kartu cuma 1
+  PBN_BOARD_AUTO_TIMER = setInterval(() => {
+    const maxIndex = Math.max(0, total - PBN_BOARD_PER_VIEW);
+    // Loop kembali ke awal setelah sampai kartu terakhir
+    PBN_BOARD_INDEX = PBN_BOARD_INDEX >= maxIndex ? 0 : PBN_BOARD_INDEX + 1;
+    updateBoardPosition();
+  }, PBN_BOARD_AUTO_MS);
+}
+
+function restartBoardAutoRotate(total) {
+  // Dipanggil tiap kali user berinteraksi manual (klik panah/dot/drag),
+  // supaya hitungan 5 detik mulai lagi dari nol, bukan menyambung
+  // hitungan lama yang sudah berjalan sebagian.
+  startBoardAutoRotate(total);
+}
+
 function bindBoardCarousel(total) {
   const track = document.getElementById('board-rows');
   const prevBtn = document.getElementById('board-prev');
@@ -472,6 +493,7 @@ function bindBoardCarousel(total) {
     prevBtn.addEventListener('click', () => {
       PBN_BOARD_INDEX = Math.max(0, PBN_BOARD_INDEX - 1);
       updateBoardPosition();
+      restartBoardAutoRotate(total);
     });
   }
   if (nextBtn && !nextBtn.dataset.bound) {
@@ -479,6 +501,7 @@ function bindBoardCarousel(total) {
     nextBtn.addEventListener('click', () => {
       PBN_BOARD_INDEX = Math.min(maxIndex(), PBN_BOARD_INDEX + 1);
       updateBoardPosition();
+      restartBoardAutoRotate(total);
     });
   }
 
@@ -505,6 +528,7 @@ function bindBoardCarousel(total) {
         }
       }
       updateBoardPosition();
+      restartBoardAutoRotate(total);
     };
 
     track.addEventListener('touchstart', (e) => onStart(e.touches[0].clientX), { passive: true });
@@ -514,12 +538,24 @@ function bindBoardCarousel(total) {
     window.addEventListener('mouseup', (e) => { if (dragging) onEnd(e.clientX); });
   }
 
+  const dotsWrap = document.getElementById('board-dots');
+  if (dotsWrap && !dotsWrap.dataset.autoBound) {
+    dotsWrap.dataset.autoBound = '1';
+    dotsWrap.addEventListener('click', (e) => {
+      if (e.target.classList.contains('board-dot')) {
+        restartBoardAutoRotate(total);
+      }
+    });
+  }
+
   if (!window._pbnBoardResizeBound) {
     window._pbnBoardResizeBound = true;
     window.addEventListener('resize', () => {
       updateBoardPosition();
     });
   }
+
+  startBoardAutoRotate(total);
 }
 
 /* ---------- Peristiwa grid ---------- */
