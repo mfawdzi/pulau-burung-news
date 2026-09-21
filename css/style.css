@@ -1245,9 +1245,15 @@ main{
 
 .board-carousel{
   position:relative;
+  width:100%;
+}
+
+.board-controls{
   display:flex;
   align-items:center;
-  gap:10px;
+  justify-content:center;
+  gap:14px;
+  margin-top:16px;
 }
 
 .board-viewport{
@@ -1401,7 +1407,7 @@ main{
   }
    .board-card-items{
     display:grid;
-    grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-template-columns:1fr;
     gap:8px;
     margin-top:4px;
   }
@@ -1419,8 +1425,11 @@ main{
     flex-shrink:0;
   }
   .board-dots{
-    margin-top:10px;
     gap:5px;
+  }
+  .board-controls{
+    margin-top:12px;
+    gap:10px;
   }
   .board-dot{
     width:6px;
@@ -1454,8 +1463,8 @@ main{
 .board-dots{
   display:flex;
   justify-content:center;
+  align-items:center;
   gap:6px;
-  margin-top:16px;
 }
 .board-dot{
   width:7px;
