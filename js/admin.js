@@ -12,6 +12,11 @@
 let PBN_EDIT_ID = null; // id artikel yang sedang diedit, null = mode tambah baru
 let PBN_FORM_IMAGE = null; // foto yang sedang dipilih di form Tambah/Ubah Konten (data URL base64)
 let PBN_FORM_CONTRIBUTOR = null; // nama pengunjung asli, diisi saat konten berasal dari Info Berita Warga
+document.addEventListener('pbn:data-changed', () => {
+  const user = pbnCurrentUser();
+  if (user) showDashboard(user);
+});
+
 document.addEventListener('DOMContentLoaded', () => {
   const user = pbnCurrentUser();
   if (user) {
