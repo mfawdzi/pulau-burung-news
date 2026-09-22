@@ -18,6 +18,12 @@ if ('scrollRestoration' in history) {
 }
 window.scrollTo(0, 0);
 
+document.addEventListener('pbn:data-changed', () => {
+  renderAll();
+  renderAuthArea();
+  renderNavProfileMini();
+});
+
 document.addEventListener('DOMContentLoaded', () => {
   renderDate();
   renderAll();
