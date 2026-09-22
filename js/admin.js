@@ -110,9 +110,17 @@ function bindRegisterForm() {
       return;
     }
     errBox.style.display = 'none';
-    pbnLogin(username, password);
+
+    // Simpan sesi langsung dari data yang baru dibuat, TANPA menunggu
+    // sinkronisasi cache dari Firestore (yang butuh waktu beberapa saat).
+    // Memanggil pbnLogin() di sini bisa gagal karena cache belum terisi.
+    sessionStorage.setItem('pbn_session_v1', JSON.stringify({
+      username: result.user.username,
+      role: result.user.role,
+      name: result.user.name
+    }));
+
     form.reset();
-    // Pengunjung baru langsung diarahkan ke situs biasa, bukan dashboard redaksi
     window.location.href = 'index.html';
   });
 }
