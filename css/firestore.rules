@@ -1,0 +1,102 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function myProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function roleIs(role) {
+      return signedIn() && myProfile().data.role == role;
+    }
+
+    function isEditor() {
+      return signedIn() && myProfile().data.role in ['superadmin', 'admin', 'reporter'];
+    }
+
+    function isAdmin() {
+      return signedIn() && myProfile().data.role in ['superadmin', 'admin'];
+    }
+
+    function isSuperadmin() {
+      return signedIn() && myProfile().data.role == 'superadmin';
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isSuperadmin());
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.role == 'pengunjung';
+      allow update: if isSuperadmin()
+        || (signedIn()
+            && request.auth.uid == uid
+            && request.resource.data.uid == resource.data.uid
+            && request.resource.data.role == resource.data.role);
+      allow delete: if isSuperadmin();
+    }
+
+    match /usernames/{username} {
+      allow read: if false;
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+      allow update: if false;
+    }
+
+    match /articles/{id} {
+      allow read: if true;
+      allow create: if isEditor();
+      allow update, delete: if isAdmin()
+        || (roleIs('reporter') && resource.data.author == myProfile().data.name);
+    }
+
+    match /comments/{id} {
+      allow read: if true;
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if isAdmin()
+        || (signedIn() && resource.data.uid == request.auth.uid);
+    }
+
+    match /likes/{id} {
+      allow read: if true;
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+      allow update: if false;
+    }
+
+    match /lokerRequests/{id} {
+      allow read: if isAdmin();
+      allow create: if signedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    match /newsTips/{id} {
+      allow read: if isAdmin();
+      allow create: if signedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    match /adRequests/{id} {
+      allow read: if isAdmin();
+      allow create: if signedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    match /boardCards/{id} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /settings/{id} {
+      allow read: if true;
+      allow create, update, delete: if isSuperadmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
