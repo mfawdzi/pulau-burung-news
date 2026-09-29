@@ -106,12 +106,9 @@ async function pbnSeedIfEmpty() {
       PBN_SEED_ARTICLES.forEach(a => batch.set(db.collection('articles').doc(a.id), a));
       await batch.commit();
     }
-    const userSnap = await db.collection('users').limit(1).get();
-    if (userSnap.empty) {
-      const batch2 = db.batch();
-      PBN_DEFAULT_USERS.forEach(u => batch2.set(db.collection('users').doc(u.username), u));
-      await batch2.commit();
-    }
+    
+    // BAGIAN SEEDING USER SUDAH DIHAPUS DEMI KEAMANAN
+
     const boardSnap = await db.collection('boardCards').limit(1).get();
     if (boardSnap.empty) {
       const batch3 = db.batch();
