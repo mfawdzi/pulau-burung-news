@@ -35,12 +35,7 @@ const PBN_CATEGORIES = [
   'Ekonomi', 'Pendidikan', 'Olahraga', 'Info Loker'
 ];
 
-const PBN_DEFAULT_USERS = [
-  { username: 'superadmin', password: 'super123', role: 'superadmin', name: 'Admin Super PBN' },
-  { username: 'admin', password: 'admin123', role: 'admin', name: 'Admin Redaksi' },
-  { username: 'reporter', password: 'reporter123', role: 'reporter', name: 'Reporter PBN' },
-  { username: 'pengunjung', password: 'pengunjung123', role: 'pengunjung', name: 'Warga PBN' }
-];
+const PBN_DEFAULT_USERS = [];
 
 const PBN_SEED_ARTICLES = [
   { id: 'a1', type: 'berita', title: 'Jalan Penghubung Desa Sungai Simbar dan Sungai Iyu Rusak Parah, Warga Keluhkan Kondisi Jalan', excerpt: 'Warga dua desa menuntut perbaikan segera.', content: 'Warga Desa Sungai Simbar dan Sungai Iyu mengeluhkan kondisi jalan penghubung antar desa yang rusak parah.', category: 'Peristiwa', village: 'Sungai Simbar', author: 'Reporter PBN', date: '2026-08-28T09:40:00', views: 3421, isHero: true, ticker: true, status: 'published' },
