@@ -294,7 +294,7 @@ const canReceiveNewsTips =
   user.role === 'admin' ||
   user.role === 'reporter';
 
-document.getElementById('moderation-panels').style.display =
+(document.getElementById('moderation-panels') || { style: {} }).style.display =
   (showModeration || canReceiveNewsTips) ? 'block' : 'none';
 
 if (canReceiveNewsTips) {
