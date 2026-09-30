@@ -23,6 +23,7 @@ document.addEventListener('pbn:data-changed', (e) => {
   renderAuthArea();
   renderNavProfileMini();
   if (e.detail && e.detail.name === 'shopeeAds') initShopeeWidget();
+  if (e.detail && e.detail.name === 'marketWidget') syncMarketWidget();
 });
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -38,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
   bindNavProfileScroll();
   bindProfileModal();
   bindAdModal();
-  bindMarketWidget();
+  syncMarketWidget();
   initShopeeWidget();
   initPopupVideo();
   openArticleFromHash();
@@ -1957,4 +1958,27 @@ function initPopupVideo() {
     box.style.display = 'flex';
     player.play().catch(() => {});
   }, 10000);
+}
+
+/* =========================================================
+   SINKRON WIDGET HARGA DENGAN DATA FIREBASE
+   (tombol Kelapa/Emas hanya tampil jika dicentang di admin)
+   ========================================================= */
+function syncMarketWidget() {
+  const widget = document.getElementById('market-widget');
+  if (!widget || !PBN_CACHE.ready.marketWidget) return;
+
+  const s = pbnGetMarketWidget();
+  const kelapaBtn = widget.querySelector('[data-market="kelapa"]');
+  const emasBtn = widget.querySelector('[data-market="emas"]');
+  if (kelapaBtn) kelapaBtn.style.display = s.kelapa.enabled ? 'flex' : 'none';
+  if (emasBtn) emasBtn.style.display = s.emas.enabled ? 'flex' : 'none';
+
+  const show = s.enabled && (s.kelapa.enabled || s.emas.enabled);
+  widget.style.display = show ? 'block' : 'none';
+
+  if (show && !widget.dataset.bound) {
+    widget.dataset.bound = '1';
+    bindMarketWidget();
+  }
 }
