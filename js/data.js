@@ -54,6 +54,7 @@ const PBN_DEFAULT_MARKET_WIDGET = {
 };
 
 const PBN_DEFAULT_SHOPEE_ADS = { enabled: true, items: [] };
+const PBN_DEFAULT_POPUP_VIDEO = { enabled: false, videoUrl: '', linkUrl: '' };
 
 const PBN_DEFAULT_BOARD_CARDS = [
   { id: 'board-1', title: 'Jajak Pendapat Warga (Polling)', desc: 'Bikin warga lebih terlibat lewat jajak pendapat isu lokal.', items: ['Pertanyaan + beberapa pilihan jawaban', 'Warga vote satu kali per akun', 'Hasil ditampilkan sebagai persentase/grafik'] },
@@ -66,6 +67,7 @@ const PBN_CACHE = {
   comments: [], likes: [], boardCards: [],
   marketWidget: JSON.parse(JSON.stringify(PBN_DEFAULT_MARKET_WIDGET)),
   shopeeAds: JSON.parse(JSON.stringify(PBN_DEFAULT_SHOPEE_ADS)),
+  popupVideo: JSON.parse(JSON.stringify(PBN_DEFAULT_POPUP_VIDEO)),
   ready: {}
 };
 
@@ -126,6 +128,7 @@ function pbnInit() {
   pbnSubscribeCollection('boardCards', 'boardCards');
   pbnSubscribeDoc('settings', 'marketWidget', 'marketWidget', PBN_DEFAULT_MARKET_WIDGET);
   pbnSubscribeDoc('settings', 'shopeeAds', 'shopeeAds', PBN_DEFAULT_SHOPEE_ADS);
+  pbnSubscribeDoc('settings', 'popupVideo', 'popupVideo', PBN_DEFAULT_POPUP_VIDEO);
   pbnSeedIfEmpty();
 }
 
@@ -241,6 +244,11 @@ function pbnDeleteShopeeAd(id) {
   const settings = pbnGetShopeeAds();
   pbnSaveShopeeAds({ ...settings, items: (settings.items || []).filter(i => i.id !== id) });
 }
+
+/* ---------- Video Popup ---------- */
+function pbnGetPopupVideo() { return PBN_CACHE.popupVideo; }
+function pbnSavePopupVideo(data) { return db.collection('settings').doc('popupVideo').set(data); }
+function pbnDeletePopupVideo() { return db.collection('settings').doc('popupVideo').delete(); }
 
 /* ---------- Papan Informasi Desa ---------- */
 function pbnGetBoardCards() { return PBN_CACHE.boardCards; }
