@@ -12,9 +12,14 @@
 let PBN_EDIT_ID = null; // id artikel yang sedang diedit, null = mode tambah baru
 let PBN_FORM_IMAGE = null; // foto yang sedang dipilih di form Tambah/Ubah Konten (data URL base64)
 let PBN_FORM_CONTRIBUTOR = null; // nama pengunjung asli, diisi saat konten berasal dari Info Berita Warga
-document.addEventListener('pbn:data-changed', () => {
+document.addEventListener('pbn:data-changed', (e) => {
   const user = pbnCurrentUser();
   if (user) showDashboard(user);
+
+  // Gambar ulang panel begitu datanya sampai dari Firebase
+  const name = e.detail && e.detail.name;
+  if (name === 'shopeeAds') renderShopeeAdsPanel();
+  if (name === 'popupVideo') renderPopupVideoPanel();
 });
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -313,7 +318,12 @@ if (isEditorInChief) {
     bindPapanDesaPanel();
 
     renderShopeeAdsPanel();
-    bindShopeeAdsPanel();
+        bindShopeeAdsPanel();
+
+    if (isSuperadmin) {
+      renderPopupVideoPanel();
+      bindPopupVideoPanel();
+    }
 
     bindLokerCreateForm(user);
     bindAdCreateForm(user);
@@ -2736,6 +2746,100 @@ function bindShopeeAdsPanel() {
   };
 }
 
+/* =========================================================
+   PANEL ADMIN: VIDEO POPUP
+   ========================================================= */
+function renderPopupVideoPanel() {
+  const panel = document.getElementById('popup-video-panel');
+  if (!panel) return;
+  panel.style.display = 'block';
+
+  const v = pbnGetPopupVideo();
+
+  // Isi form dari data tersimpan (sekali saja, setelah data Firestore siap)
+  if (PBN_CACHE.ready.popupVideo && !panel.dataset.filled) {
+    panel.dataset.filled = '1';
+    document.getElementById('popup-video-target').value = v.linkUrl || '';
+    document.getElementById('popup-video-enabled').checked = v.enabled !== false;
+  }
+
+  document.getElementById('popup-video-status').innerHTML = v.videoUrl
+    ? `<p><b>${v.enabled ? '🟢 Aktif' : '⚪ Nonaktif'}</b></p>
+       <video src="${pbnEscapeHtml(v.videoUrl)}" controls muted style="max-width:280px;border-radius:8px;display:block;margin-bottom:10px;"></video>
+       <button type="button" class="btn-secondary" id="popup-video-delete">🗑 Hapus</button>`
+    : '<p class="form-note">Belum ada video.</p>';
+}
+
+function pbnUploadPopupVideo(file, onProgress) {
+  const path = 'popup/' + Date.now() + '-' + file.name.replace(/[^\w.\-]/g, '_');
+  const task = firebase.storage().ref(path).put(file, { contentType: file.type });
+  return new Promise((resolve, reject) => {
+    task.on('state_changed',
+      s => onProgress(Math.round(s.bytesTransferred / s.totalBytes * 100)),
+      reject,
+      () => task.snapshot.ref.getDownloadURL().then(url => resolve({ url, path })).catch(reject));
+  });
+}
+
+function bindPopupVideoPanel() {
+  const status = document.getElementById('popup-video-status');
+  const form = document.getElementById('popup-video-form');
+  if (!status || !form || form.dataset.bound) return;
+  form.dataset.bound = '1';
+
+  status.addEventListener('click', (e) => {
+    if (e.target.id !== 'popup-video-delete') return;
+    if (!confirm('Hapus video popup?')) return;
+    const old = pbnGetPopupVideo();
+    pbnDeletePopupVideo()
+      .then(() => {
+        if (old.storagePath) firebase.storage().ref(old.storagePath).delete().catch(() => {});
+        showToast('Video popup dihapus.');
+      })
+      .catch(() => showToast('Gagal menghapus (khusus super admin).', true));
+  });
+
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    const old = pbnGetPopupVideo();
+    const fileEl = document.getElementById('popup-video-file');
+    const progress = document.getElementById('popup-video-progress');
+    const btn = form.querySelector('button[type="submit"]');
+    const file = fileEl.files[0];
+
+    if (!file && !old.videoUrl) { showToast('Pilih file video terlebih dahulu.', true); return; }
+    if (file && (!file.type.startsWith('video/') || file.size > 50 * 1024 * 1024)) {
+      showToast('File harus video, maksimal 50MB.', true);
+      return;
+    }
+
+    const data = {
+      enabled: document.getElementById('popup-video-enabled').checked,
+      linkUrl: document.getElementById('popup-video-target').value.trim(),
+      videoUrl: old.videoUrl || '',
+      storagePath: old.storagePath || ''
+    };
+
+    btn.disabled = true;
+    try {
+      if (file) {
+        const up = await pbnUploadPopupVideo(file, p => { progress.textContent = 'Mengunggah... ' + p + '%'; });
+        data.videoUrl = up.url;
+        data.storagePath = up.path;
+      }
+      await pbnSavePopupVideo(data);
+      if (file && old.storagePath) firebase.storage().ref(old.storagePath).delete().catch(() => {});
+      fileEl.value = '';
+      showToast('Video popup disimpan.');
+    } catch (err) {
+      console.error(err);
+      showToast('Gagal menyimpan. Cek aturan Storage & pastikan login sebagai super admin.', true);
+    }
+    btn.disabled = false;
+    progress.textContent = '';
+  };
+}
+
 /* ===== STRUCTURED REDAKSI NAVIGATION ===== */
 function setupPbnRedaksiLayout(user){
   const root=document.getElementById('redaksi-section');
@@ -2808,6 +2912,8 @@ function setupPbnRedaksiLayout(user){
   if(mw) moveToTarget(mw,'settings');
   const shopeeAds=root.querySelector('#shopee-ads-panel');
   if(shopeeAds) moveToTarget(shopeeAds,'shopee-ads');
+  const popupVideo=root.querySelector('#popup-video-panel');
+  if(popupVideo) moveToTarget(popupVideo,'popup-video');
   // Manajemen Pengguna hanya berada di halaman Pengguna.
   // Panel sudah diambil sebelum dash-grid dihapus.
   if(usersPanel){
