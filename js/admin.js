@@ -313,6 +313,7 @@ if (isEditorInChief) {
     renderLiveSettingsPanel(user);
     renderLokerRequests(user);
     renderAds(user);
+    renderPublishedManager(user);
 
         renderPapanDesaPanel();
     bindPapanDesaPanel();
@@ -2920,6 +2921,59 @@ function bindPopupVideoPanel() {
     btn.disabled = false;
     progress.textContent = '';
   };
+}
+
+/* =========================================================
+   DAFTAR INFO LOKER & IKLAN YANG SUDAH TAYANG (Ubah / Hapus)
+   ========================================================= */
+function renderPublishedManager(user) {
+  if (!pbnIsEditorInChief(user.role)) return;
+
+  const groups = [
+    { boxId: 'loker-published-box', anchorId: 'loker-create-panel', title: '📋 Info Loker yang Sudah Dibuat', match: a => a.category === 'Info Loker' },
+    { boxId: 'ads-published-box', anchorId: 'ads-create-panel', title: '📋 Iklan yang Sudah Dibuat', match: a => a.type === 'iklan' }
+  ];
+
+  groups.forEach(g => {
+    const anchor = document.getElementById(g.anchorId);
+    if (!anchor) return;
+
+    let box = document.getElementById(g.boxId);
+    if (!box) {
+      box = document.createElement('div');
+      box.id = g.boxId;
+      box.className = 'panel';
+      box.style.marginTop = '28px';
+    }
+    if (anchor.nextElementSibling !== box) anchor.after(box);
+
+    const list = pbnGetArticles()
+      .filter(g.match)
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    box.innerHTML = `<h2>${g.title}</h2>` + (list.length
+      ? `<div style="overflow-x:auto;"><table class="article-table">
+          <thead><tr><th>Judul</th><th>Tanggal</th><th>Status</th><th>Aksi</th></tr></thead>
+          <tbody>${list.map(a => `
+            <tr>
+              <td><div class="art-title">${pbnEscapeHtml(a.title)}</div></td>
+              <td class="art-meta">${pbnFormatDate(a.date)}</td>
+              <td><span class="status-pill status-${a.status}">${a.status === 'published' ? 'Terbit' : 'Draf'}</span></td>
+              <td>
+                <div class="row-actions">
+                  <button class="primary" data-action="edit" data-id="${a.id}">Ubah</button>
+                  <button data-action="toggle-status" data-id="${a.id}">${a.status === 'published' ? 'Jadikan Draf' : 'Terbitkan'}</button>
+                  <button class="danger" data-action="delete" data-id="${a.id}">Hapus</button>
+                </div>
+              </td>
+            </tr>`).join('')}
+          </tbody></table></div>`
+      : '<p class="form-note">Belum ada.</p>');
+
+    box.querySelectorAll('button[data-action]').forEach(btn => {
+      btn.addEventListener('click', () => handleTableAction(btn, user));
+    });
+  });
 }
 
 /* ===== STRUCTURED REDAKSI NAVIGATION ===== */
