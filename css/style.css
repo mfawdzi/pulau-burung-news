@@ -2673,3 +2673,29 @@ footer{
   .shopee-widget-caption{ font-size:9.5px; }
   .shopee-widget-cta{ font-size:8.5px; }
 }
+
+/* ===== VIDEO POPUP ===== */
+.popup-video{
+  position:fixed; inset:0; z-index:20000; display:none;
+  align-items:center; justify-content:center; padding:16px;
+  background:rgba(0,0,0,.6);
+}
+.popup-video-box{
+  position:relative; width:min(100%, 900px);
+  background:#111; border-radius:12px; overflow:hidden;
+  box-shadow:0 20px 60px rgba(0,0,0,.5);
+}
+.popup-video-box video{ display:block; width:100%; max-height:70vh; background:#000; }
+.popup-video-bar{ display:flex; justify-content:center; padding:12px; }
+.popup-video-bar button,
+.popup-video-bar a{
+  padding:10px 22px; border:none; border-radius:8px; cursor:pointer;
+  font:600 14px Inter, sans-serif; text-decoration:none; color:#fff;
+}
+#popup-video-hide{ background:rgba(255,255,255,.2); }
+#popup-video-link{ background:#e5484d; }
+.popup-video-x{
+  position:absolute; top:8px; right:8px; z-index:1;
+  width:32px; height:32px; border:none; border-radius:50%;
+  background:rgba(0,0,0,.6); color:#fff; font-size:20px; line-height:1; cursor:pointer;
+}
