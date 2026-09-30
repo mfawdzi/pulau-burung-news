@@ -143,7 +143,7 @@ function renderHero(list) {
     <span class="tag ${pbnCategoryTagClass(hero.category)}">${pbnEscapeHtml(hero.category)}</span>
     <h1 data-id="${hero.id}" style="margin-top:12px;">${pbnEscapeHtml(hero.title)}</h1>
     <div class="byline">
-      <span>Oleh ${pbnEscapeHtml(hero.author)}</span><span class="dot">·</span><span>${pbnFormatDate(hero.date)}</span><span class="dot">·</span><span>${pbnEscapeHtml(hero.village || '')}</span>
+      ${pbnShowAuthor(hero) ? `<span>Oleh ${pbnEscapeHtml(hero.author)}</span><span class="dot">·</span>` : ''}<span>${pbnFormatDate(hero.date)}</span><span class="dot">·</span><span>${pbnEscapeHtml(hero.village || '')}</span>
     </div>
     <div class="ad-slot ad-small" id="ad-slot-hero" style="margin:16px 0;"></div>
     <p class="dek">${pbnEscapeHtml(hero.excerpt)}</p>
@@ -181,7 +181,7 @@ function renderTerbaru(list) {
       <div>
         <span class="tag ${pbnCategoryTagClass(a.category)}">${pbnEscapeHtml(a.category)}</span>
         <h3>${pbnEscapeHtml(a.title)}</h3>
-        <div class="meta">${pbnRelativeTime(a.date)} · ${pbnEscapeHtml(a.author)}</div>
+        <div class="meta">${pbnRelativeTime(a.date)}${pbnShowAuthor(a) ? ' · ' + pbnEscapeHtml(a.author) : ''}</div>
       </div>
     </div>
   `).join('') + (sorted.length > 5 ? `
@@ -985,7 +985,7 @@ function openArticle(id) {
     <span class="tag ${pbnCategoryTagClass(article.category)}">${pbnEscapeHtml(article.category)}</span>
     <h1>${pbnEscapeHtml(article.title)}</h1>
     <div class="byline">
-      <span>Oleh ${pbnEscapeHtml(article.author)}</span><span class="dot">·</span><span>${pbnFormatDate(article.date)}</span><span class="dot">·</span><span>${pbnEscapeHtml(article.village || '')}</span>
+      ${pbnShowAuthor(article) ? `<span>Oleh ${pbnEscapeHtml(article.author)}</span><span class="dot">·</span>` : ''}<span>${pbnFormatDate(article.date)}</span><span class="dot">·</span><span>${pbnEscapeHtml(article.village || '')}</span>
     </div>
     <div class="ad-slot ad-small" id="ad-slot-modal" style="margin:16px 0;"></div>
     <div class="modal-figure"${pbnImageStyle(article)}></div>
@@ -1977,8 +1977,14 @@ function syncMarketWidget() {
   const show = s.enabled && (s.kelapa.enabled || s.emas.enabled);
   widget.style.display = show ? 'block' : 'none';
 
-  if (show && !widget.dataset.bound) {
+    if (show && !widget.dataset.bound) {
     widget.dataset.bound = '1';
     bindMarketWidget();
   }
+}
+
+/* Info Loker & Iklan buatan admin: nama pengunggah tidak ditampilkan di halaman publik */
+function pbnShowAuthor(a) {
+  const lokerOrIklan = a.category === 'Info Loker' || a.type === 'iklan';
+  return !(lokerOrIklan && !a.fromVisitor);
 }
