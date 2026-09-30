@@ -2657,6 +2657,7 @@ function renderShopeeAdsPanel() {
         <td>${item.mediaType === 'video'
           ? `<video src="${item.mediaUrl}" muted style="width:52px;height:52px;object-fit:cover;border-radius:6px;"></video>`
           : `<img src="${item.mediaUrl}" alt="" style="width:52px;height:52px;object-fit:cover;border-radius:6px;">`}</td>
+        <td style="max-width:160px;">${pbnEscapeHtml(item.caption || '')}</td>
         <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
           <a href="${pbnEscapeHtml(item.shopeeLink)}" target="_blank" rel="noopener noreferrer">${pbnEscapeHtml(item.shopeeLink || '')}</a>
         </td>
@@ -2667,10 +2668,51 @@ function renderShopeeAdsPanel() {
           </label>
         </td>
         <td>
+          <button type="button" class="btn-secondary shopee-item-edit">✏️ Edit</button>
           <button type="button" class="btn-secondary shopee-item-delete">🗑 Hapus</button>
         </td>
       </tr>
     `).join('');
+}
+
+let PBN_SHOPEE_EDIT_ID = null;
+
+function startShopeeEdit(id) {
+  const item = (pbnGetShopeeAds().items || []).find(i => i.id === id);
+  if (!item) return;
+  PBN_SHOPEE_EDIT_ID = id;
+
+  document.getElementById('shopee-ad-caption').value = item.caption || '';
+  document.getElementById('shopee-ad-link').value = item.shopeeLink || '';
+  const fileInput = document.getElementById('shopee-ad-image');
+  fileInput.value = '';
+  fileInput.required = false;
+
+  const form = document.getElementById('shopee-ad-form');
+  const submitBtn = form.querySelector('button[type="submit"]');
+  submitBtn.textContent = '💾 Simpan Perubahan';
+  if (!document.getElementById('shopee-edit-cancel')) {
+    const cancel = document.createElement('button');
+    cancel.type = 'button';
+    cancel.id = 'shopee-edit-cancel';
+    cancel.className = 'btn-secondary';
+    cancel.style.marginLeft = '8px';
+    cancel.textContent = 'Batal';
+    cancel.onclick = cancelShopeeEdit;
+    submitBtn.after(cancel);
+  }
+  form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  showToast('Mode edit: kosongkan foto jika tidak ingin menggantinya.');
+}
+
+function cancelShopeeEdit() {
+  PBN_SHOPEE_EDIT_ID = null;
+  const form = document.getElementById('shopee-ad-form');
+  form.reset();
+  document.getElementById('shopee-ad-image').required = true;
+  form.querySelector('button[type="submit"]').textContent = '💾 Tambah Iklan';
+  const cancel = document.getElementById('shopee-edit-cancel');
+  if (cancel) cancel.remove();
 }
 
 function bindShopeeAdsPanel() {
@@ -2695,6 +2737,10 @@ function bindShopeeAdsPanel() {
       showToast('Status iklan diperbarui.');
     });
     tbody.addEventListener('click', (e) => {
+      if (e.target.classList.contains('shopee-item-edit')) {
+        startShopeeEdit(e.target.closest('tr').dataset.shopeeId);
+        return;
+      }
       if (!e.target.classList.contains('shopee-item-delete')) return;
       const id = e.target.closest('tr').dataset.shopeeId;
       if (!confirm('Hapus iklan Shopee ini?')) return;
@@ -2716,11 +2762,47 @@ function bindShopeeAdsPanel() {
     const link = document.getElementById('shopee-ad-link').value.trim();
     const file = fileInput.files[0];
 
+    if (PBN_SHOPEE_EDIT_ID) {
+      const id = PBN_SHOPEE_EDIT_ID;
+      const done = (patch) => {
+        pbnUpdateShopeeAd(id, patch);
+        cancelShopeeEdit();
+        renderShopeeAdsPanel();
+        showToast('Iklan Shopee diperbarui.');
+      };
+      if (!file) { done({ caption, shopeeLink: link }); return; }
+
+      const isVid = file.type.startsWith('video/');
+      if (file.size > 5 * 1024 * 1024) { showToast('Ukuran file maksimal 5MB.', true); return; }
+
+      const rd = new FileReader();
+      rd.onload = () => {
+        if (isVid) {
+          done({ caption, shopeeLink: link, mediaUrl: rd.result, mediaType: 'video' });
+          return;
+        }
+        const img = new Image();
+        img.onload = () => {
+          const k = Math.min(1, 800 / Math.max(img.width, img.height));
+          const c = document.createElement('canvas');
+          c.width = Math.round(img.width * k);
+          c.height = Math.round(img.height * k);
+          const ctx = c.getContext('2d');
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, c.width, c.height);
+          ctx.drawImage(img, 0, 0, c.width, c.height);
+          done({ caption, shopeeLink: link, mediaUrl: c.toDataURL('image/jpeg', 0.8), mediaType: 'image' });
+        };
+        img.src = rd.result;
+      };
+      rd.readAsDataURL(file);
+      return;
+    }
+
     if (!file) {
       showToast('Pilih foto atau video produk terlebih dahulu.', true);
       return;
     }
-
     const isVideo = file.type.startsWith('video/');
     const maxSize = isVideo ? 5 * 1024 * 1024 : 1024 * 1024;
 
