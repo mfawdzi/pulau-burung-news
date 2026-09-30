@@ -361,7 +361,7 @@ if (showUsers) {
 
 pbnUpdateInboxBadge(user);
 
-setTimeout(function(){ setupPbnRedaksiLayout(user); }, 0);
+setTimeout(function(){ setupPbnRedaksiLayout(user); renderPublishedManager(user); }, 0);
 }
 
 
@@ -2924,54 +2924,84 @@ function bindPopupVideoPanel() {
 }
 
 /* =========================================================
-   DAFTAR INFO LOKER & IKLAN YANG SUDAH TAYANG (Ubah / Hapus)
+   DAFTAR INFO LOKER & IKLAN YANG SUDAH TAYANG
+   (tampilan sama seperti Iklan Shopee: daftar di atas, form di bawah)
    ========================================================= */
 function renderPublishedManager(user) {
   if (!pbnIsEditorInChief(user.role)) return;
 
   const groups = [
-    { boxId: 'loker-published-box', anchorId: 'loker-create-panel', title: '📋 Info Loker yang Sudah Dibuat', match: a => a.category === 'Info Loker' },
-    { boxId: 'ads-published-box', anchorId: 'ads-create-panel', title: '📋 Iklan yang Sudah Dibuat', match: a => a.type === 'iklan' }
+    { key: 'loker', title: '💼 Info Loker', createId: 'loker-create-panel',
+      note: 'Daftar info loker yang tayang di website. Ubah, sembunyikan, atau hapus dari sini.',
+      match: a => a.category === 'Info Loker' },
+    { key: 'ads', title: '📢 Iklan', createId: 'ads-create-panel',
+      note: 'Daftar iklan yang tayang di website. Ubah, sembunyikan, atau hapus dari sini.',
+      match: a => a.type === 'iklan' }
   ];
 
   groups.forEach(g => {
-    const anchor = document.getElementById(g.anchorId);
-    if (!anchor) return;
+    const view = document.querySelector('[data-pbn-target="' + g.key + '"]');
+    const create = document.getElementById(g.createId);
+    if (!view || !create) return;
 
-    let box = document.getElementById(g.boxId);
+    let box = document.getElementById(g.key + '-manager');
     if (!box) {
       box = document.createElement('div');
-      box.id = g.boxId;
-      box.className = 'panel';
-      box.style.marginTop = '28px';
+      box.id = g.key + '-manager';
+      box.className = 'panel market-admin-panel';
+      box.innerHTML = '<h2>' + g.title + '</h2><p class="form-note">' + g.note + '</p><div class="manager-list"></div>';
     }
-    if (anchor.nextElementSibling !== box) anchor.after(box);
+    if (box.parentElement !== view) view.appendChild(box);
+
+    // Form tambah dijadikan kotak di bawah daftar (sama seperti Iklan Shopee)
+    if (create.parentElement !== box) {
+      create.className = 'market-admin-box';
+      create.style.marginTop = '20px';
+      const h2 = create.querySelector('h2');
+      if (h2) {
+        const h3 = document.createElement('h3');
+        h3.innerHTML = h2.innerHTML;
+        h2.replaceWith(h3);
+      }
+      box.appendChild(create);
+    }
 
     const list = pbnGetArticles()
       .filter(g.match)
       .sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    box.innerHTML = `<h2>${g.title}</h2>` + (list.length
-      ? `<div style="overflow-x:auto;"><table class="article-table">
-          <thead><tr><th>Judul</th><th>Tanggal</th><th>Status</th><th>Aksi</th></tr></thead>
-          <tbody>${list.map(a => `
+    const listEl = box.querySelector('.manager-list');
+    listEl.innerHTML = `
+      <div style="overflow-x:auto;">
+        <table class="article-table">
+          <thead>
+            <tr><th>Foto</th><th>Judul</th><th>Tanggal</th><th>Tayang</th><th>Aksi</th></tr>
+          </thead>
+          <tbody>` + (list.length ? list.map(a => `
             <tr>
-              <td><div class="art-title">${pbnEscapeHtml(a.title)}</div></td>
+              <td>${a.image
+                ? `<img src="${pbnEscapeHtml(a.image)}" alt="" style="width:52px;height:52px;object-fit:cover;border-radius:6px;">`
+                : '<span class="art-meta">-</span>'}</td>
+              <td style="max-width:220px;">${pbnEscapeHtml(a.title)}</td>
               <td class="art-meta">${pbnFormatDate(a.date)}</td>
-              <td><span class="status-pill status-${a.status}">${a.status === 'published' ? 'Terbit' : 'Draf'}</span></td>
               <td>
-                <div class="row-actions">
-                  <button class="primary" data-action="edit" data-id="${a.id}">Ubah</button>
-                  <button data-action="toggle-status" data-id="${a.id}">${a.status === 'published' ? 'Jadikan Draf' : 'Terbitkan'}</button>
-                  <button class="danger" data-action="delete" data-id="${a.id}">Hapus</button>
-                </div>
+                <label style="display:flex; align-items:center; gap:6px;">
+                  <input type="checkbox" data-action="toggle-status" data-id="${a.id}" ${a.status === 'published' ? 'checked' : ''}>
+                  Tayang
+                </label>
               </td>
-            </tr>`).join('')}
-          </tbody></table></div>`
-      : '<p class="form-note">Belum ada.</p>');
+              <td>
+                <button type="button" class="btn-secondary" data-action="edit" data-id="${a.id}">✏️ Edit</button>
+                <button type="button" class="btn-secondary" data-action="delete" data-id="${a.id}">🗑 Hapus</button>
+              </td>
+            </tr>`).join('')
+        : '<tr><td colspan="5" class="table-empty">Belum ada. Tambahkan lewat form di bawah.</td></tr>') + `
+          </tbody>
+        </table>
+      </div>`;
 
-    box.querySelectorAll('button[data-action]').forEach(btn => {
-      btn.addEventListener('click', () => handleTableAction(btn, user));
+    listEl.querySelectorAll('[data-action]').forEach(el => {
+      el.addEventListener(el.type === 'checkbox' ? 'change' : 'click', () => handleTableAction(el, user));
     });
   });
 }
