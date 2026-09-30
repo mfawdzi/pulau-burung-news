@@ -178,6 +178,7 @@
               <button type="button" class="pbn-side-btn" data-pbn-role="editor" data-pbn-view="loker"><span class="pbn-nav-icon">▣</span><span>Info Loker</span></button>
               <button type="button" class="pbn-side-btn" data-pbn-role="editor" data-pbn-view="ads"><span class="pbn-nav-icon">▰</span><span>Iklan</span></button>
               <button type="button" class="pbn-side-btn" data-pbn-role="editor" data-pbn-view="shopee-ads"><span class="pbn-nav-icon">🛍</span><span>Iklan Shopee</span></button>
+              <button type="button" class="pbn-side-btn" data-pbn-role="superadmin" data-pbn-view="popup-video"><span class="pbn-nav-icon">🎬</span><span>Video Popup</span></button>
               <div class="pbn-nav-divider" data-pbn-role="superadmin"></div>
               <button type="button" class="pbn-side-btn" data-pbn-role="superadmin" data-pbn-view="users"><span class="pbn-nav-icon">♙</span><span>Pengguna</span></button>
               <button type="button" class="pbn-side-btn" data-pbn-role="superadmin" data-pbn-view="settings"><span class="pbn-nav-icon">⚙</span><span>Widget Harga</span></button>
@@ -193,7 +194,7 @@
               <div class="pbn-summary-cards" id="pbn-summary-cards"></div>
               <div class="pbn-summary-grid"><div class="panel"><h2>Selamat Datang di Pusat Redaksi</h2><p class="form-note">Gunakan navigasi di sebelah kiri untuk mengelola konten, moderasi, pengguna, dan pengaturan.</p></div><div class="panel"><h2>Akses Cepat</h2><div class="pbn-quick-actions"><button type="button" class="btn" data-pbn-view="content">Kelola Konten</button><button type="button" class="btn-secondary" data-pbn-view="create">Tambah Konten</button></div></div></div>
             </div>
-            <div class="pbn-view" data-pbn-target="content"></div><div class="pbn-view" data-pbn-target="create"></div><div class="pbn-view" data-pbn-target="live-settings"></div><div class="pbn-view" data-pbn-target="moderation"></div><div class="pbn-view" data-pbn-target="papan-desa"></div><div class="pbn-view" data-pbn-target="loker"></div><div class="pbn-view" data-pbn-target="ads"></div><div class="pbn-view" data-pbn-target="shopee-ads"></div><div class="pbn-view" data-pbn-target="users"></div><div class="pbn-view" data-pbn-target="profiles"></div><div class="pbn-view" data-pbn-target="settings"></div>
+            <div class="pbn-view" data-pbn-target="content"></div><div class="pbn-view" data-pbn-target="create"></div><div class="pbn-view" data-pbn-target="live-settings"></div><div class="pbn-view" data-pbn-target="moderation"></div><div class="pbn-view" data-pbn-target="papan-desa"></div><div class="pbn-view" data-pbn-target="loker"></div><div class="pbn-view" data-pbn-target="ads"></div><div class="pbn-view" data-pbn-target="shopee-ads"></div><div class="pbn-view" data-pbn-target="popup-video"></div><div class="pbn-view" data-pbn-target="users"></div><div class="pbn-view" data-pbn-target="profiles"></div><div class="pbn-view" data-pbn-target="settings"></div>
           </div>
 
 
@@ -614,6 +615,31 @@ Poin ketiga"></textarea>
             </div>
 
                         <!-- =====================================================
+                VIDEO POPUP — KHUSUS SUPER ADMIN
+                 ===================================================== -->
+
+            <div class="panel market-admin-panel" id="popup-video-panel" style="margin-top:28px; display:none;">
+              <h2>🎬 Video Popup Layar Penuh</h2>
+              <p class="form-note">Muncul otomatis di detik ke-10 saat pengunjung membuka website (sekali per sesi).</p>
+              <div id="popup-video-status"></div>
+              <form id="popup-video-form" style="margin-top:16px;">
+                <div class="field">
+                  <label for="popup-video-file">Video (mp4/webm, maks. 50MB — kosongkan jika tidak ganti video)</label>
+                  <input type="file" id="popup-video-file" accept="video/mp4,video/webm">
+                  <p class="form-note" id="popup-video-progress" style="margin:6px 0 0;"></p>
+                </div>
+                <div class="field">
+                  <label for="popup-video-target">Link Tombol "Lihat Video Full" (tujuan setelah video selesai)
+                  <input type="url" id="popup-video-target" placeholder="https://...">
+                </div>
+                <div class="field">
+                  <label><input type="checkbox" id="popup-video-enabled" checked> Aktifkan</label>
+                </div>
+                <button type="submit" class="btn-secondary">💾 Simpan Video</button>
+              </form>
+            </div>
+
+            <!-- =====================================================
                  IKLAN PROMO SHOPEE — KHUSUS SUPER ADMIN
                  ===================================================== -->
 
@@ -1318,6 +1344,7 @@ Poin ketiga"></textarea>
   <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-storage-compat.js"></script>
   <script src="js/firebase-init.js"></script>
   <script src="js/data.js"></script>
   <script src="js/admin.js"></script>
