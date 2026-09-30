@@ -18,10 +18,11 @@ if ('scrollRestoration' in history) {
 }
 window.scrollTo(0, 0);
 
-document.addEventListener('pbn:data-changed', () => {
+document.addEventListener('pbn:data-changed', (e) => {
   renderAll();
   renderAuthArea();
   renderNavProfileMini();
+  if (e.detail && e.detail.name === 'shopeeAds') initShopeeWidget();
 });
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -39,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
   bindAdModal();
   bindMarketWidget();
   initShopeeWidget();
+  initPopupVideo();
   openArticleFromHash();
   // Cek tiap 30 detik apakah giliran iklan (rotasi 5 menit) sudah berganti
   setInterval(() => {
@@ -1830,6 +1832,7 @@ function initShopeeWidget() {
   const widget = document.getElementById('shopee-widget');
   const closeBtn = document.getElementById('shopee-widget-close');
   if (!widget || !closeBtn) return;
+  if (widget.dataset.started) return;
 
   const settings = pbnGetShopeeAds();
   PBN_SHOPEE_ITEMS = (settings.items || [])
@@ -1841,6 +1844,8 @@ function initShopeeWidget() {
     widget.style.display = 'none';
     return;
   }
+
+  widget.dataset.started = '1';
 
   // Tampilan pertama muncul 3 detik setelah halaman dibuka
   setTimeout(() => showShopeeAd(0), 3000);
@@ -1903,4 +1908,53 @@ function triggerShopeeAdOnClick() {
   const widget = document.getElementById('shopee-widget');
   if (widget && widget.classList.contains('is-visible')) return;
   showShopeeAd(PBN_SHOPEE_INDEX);
+}
+
+/* =========================================================
+   VIDEO POPUP (muncul detik ke-10, sekali per sesi)
+   ========================================================= */
+function hidePopupVideo() {
+  const box = document.getElementById('popup-video');
+  if (!box) return;
+  box.style.display = 'none';
+  const player = document.getElementById('popup-video-player');
+  player.pause();
+  player.removeAttribute('src');
+  player.load();
+}
+
+function initPopupVideo() {
+  const box = document.getElementById('popup-video');
+  if (!box) return;
+  const player = document.getElementById('popup-video-player');
+  const hideBtn = document.getElementById('popup-video-hide');
+  const linkBtn = document.getElementById('popup-video-link');
+
+  hideBtn.addEventListener('click', hidePopupVideo);
+  document.getElementById('popup-video-close').addEventListener('click', hidePopupVideo);
+  box.addEventListener('click', (e) => { if (e.target === box) hidePopupVideo(); });
+
+  // Video selesai -> "Sembunyikan" berganti jadi "Lihat Video Full"
+  player.addEventListener('ended', () => {
+    if (linkBtn.hasAttribute('href')) {
+      hideBtn.style.display = 'none';
+      linkBtn.style.display = 'inline-block';
+    }
+  });
+
+  setTimeout(() => {
+    const v = pbnGetPopupVideo();
+    if (!v.enabled || !v.videoUrl) return;
+    if (sessionStorage.getItem('pbn-popup-video') === v.videoUrl) return;
+    sessionStorage.setItem('pbn-popup-video', v.videoUrl);
+
+    hideBtn.style.display = '';
+    linkBtn.style.display = 'none';
+    if (v.linkUrl) linkBtn.href = v.linkUrl; else linkBtn.removeAttribute('href');
+
+    player.src = v.videoUrl;
+    player.muted = true;
+    box.style.display = 'flex';
+    player.play().catch(() => {});
+  }, 10000);
 }
