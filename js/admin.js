@@ -452,6 +452,11 @@ function handleTableAction(btn, user) {
   const canManage = pbnIsEditorInChief(user.role) || article.author === user.name || (article.fromVisitor && pbnCanManageContent(user.role));
   if (!canManage) return;
 
+  if (action === 'edit' && article.type === 'iklan') {
+    pbnOpenAdFormForEdit(article, null, user);
+    return;
+  }
+
   if (action === 'edit') {
     loadFormForEdit(article, user);
 
@@ -1779,9 +1784,75 @@ function bindLokerEditForm() {
     });
 }
 
+/* ---------- Mode EDIT memakai form "Tambah Iklan" ---------- */
+let PBN_AD_EDIT = null;   // iklan yang sedang diedit
+let PBN_AD_REQ = null;    // permintaan pengunjung yang sedang diubah
+
+function pbnExitAdEditMode() {
+  PBN_AD_EDIT = null;
+  PBN_AD_REQ = null;
+  const panel = document.getElementById('ads-create-panel');
+  if (!panel) return;
+  const h = panel.querySelector('h2, h3');
+  if (h) h.innerHTML = '➕ Tambah Iklan';
+  const btn = panel.querySelector('button[type="submit"]');
+  if (btn) btn.innerHTML = 'SIMPAN &amp; TERBITKAN IKLAN';
+  const img = document.getElementById('ads-create-image');
+  if (img) img.required = true;
+  const note = document.getElementById('ads-edit-note');
+  if (note) note.style.display = 'none';
+}
+
+function pbnOpenAdFormForEdit(article, req, user) {
+  const panel = document.getElementById('ads-create-panel');
+  if (!panel) return;
+
+  PBN_AD_EDIT = article || null;
+  PBN_AD_REQ = req || null;
+
+  const a = article || {};
+  const r = req || {};
+
+  document.getElementById('ads-create-title').value = a.title || r.businessName || '';
+  document.getElementById('ads-create-business').value = a.businessName || r.businessName || '';
+  document.getElementById('ads-create-phone').value = a.phone || r.phone || '';
+  document.getElementById('ads-create-detail').value = a.detail || a.content || r.detail || '';
+  document.getElementById('ads-create-promo').value = Array.isArray(a.promoTexts) ? a.promoTexts.join('\n') : '';
+  document.getElementById('ads-create-size').value = a.adSize || 'besar';
+  document.getElementById('ads-create-link').value = a.linkUrl || '';
+  document.getElementById('ads-create-status').value = article ? (a.status === 'published' ? 'published' : 'draft') : 'published';
+  document.getElementById('ads-create-image').value = '';
+  document.getElementById('ads-create-image').required = false;
+
+  const h = panel.querySelector('h2, h3');
+  if (h) h.innerHTML = article ? '✏️ Edit Iklan' : '✏️ Ubah Permintaan Iklan';
+  const btn = panel.querySelector('button[type="submit"]');
+  if (btn) btn.textContent = article ? 'SIMPAN PERUBAHAN' : 'SIMPAN & TERBITKAN IKLAN';
+
+  let note = document.getElementById('ads-edit-note');
+  if (!note) {
+    note = document.createElement('p');
+    note.id = 'ads-edit-note';
+    note.className = 'form-note';
+    note.style.cssText = 'color:#1f4b3f;font-weight:600;';
+    const form = document.getElementById('ads-create-form');
+    form.parentNode.insertBefore(note, form);
+  }
+  note.textContent = article
+    ? 'Mengedit iklan yang sudah ada. Kosongkan Banner jika tidak ingin mengganti gambar.'
+    : 'Kiriman dari: ' + (r.submittedByName || 'Pengunjung') + '. Rapikan datanya lalu klik Simpan untuk menerbitkan.';
+  note.style.display = 'block';
+
+  const nav = document.querySelector('[data-pbn-view="ads"]');
+  if (nav) nav.click();
+  setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
+}
+
 function bindAdCreateForm(user) {
   const form = document.getElementById('ads-create-form');
   if (!form) return;
+
+  form.addEventListener('reset', () => setTimeout(pbnExitAdEditMode, 0));
 
   form.onsubmit = async function (e) {
     e.preventDefault();
@@ -1806,7 +1877,9 @@ function bindAdCreateForm(user) {
 
     const file = document.getElementById('ads-create-image').files[0];
 
-    if (!title || !businessName || !phone || !detail || !file) {
+    const keepImage = PBN_AD_EDIT ? PBN_AD_EDIT.image : (PBN_AD_REQ ? PBN_AD_REQ.image : null);
+
+    if (!title || !businessName || !phone || !detail || (!file && !keepImage)) {
       showToast(
         'Lengkapi semua data iklan dan pilih gambar.',
         true
@@ -1814,16 +1887,18 @@ function bindAdCreateForm(user) {
       return;
     }
 
-    let image;
+    let image = keepImage;
 
-    try {
-      image = await pbnReadFileAsDataURL(
-        file,
-        1.5 * 1024 * 1024
-      );
-    } catch (err) {
-      showToast(err.message, true);
-      return;
+    if (file) {
+      try {
+        image = await pbnReadFileAsDataURL(
+          file,
+          1.5 * 1024 * 1024
+        );
+      } catch (err) {
+        showToast(err.message, true);
+        return;
+      }
     }
 
     const article = {
@@ -1861,22 +1936,49 @@ function bindAdCreateForm(user) {
       views: 0
     };
 
+    const wasEdit = !!PBN_AD_EDIT;
+    if (PBN_AD_EDIT) {
+      article.id = PBN_AD_EDIT.id;
+      article.date = PBN_AD_EDIT.date;
+      article.author = PBN_AD_EDIT.author;
+      article.views = PBN_AD_EDIT.views || 0;
+      if (PBN_AD_EDIT.fromVisitor) {
+        article.fromVisitor = true;
+        article.publishedBy = PBN_AD_EDIT.publishedBy;
+        article.publishedByRole = PBN_AD_EDIT.publishedByRole;
+      }
+    }
+    if (PBN_AD_REQ) {
+      article.author = PBN_AD_REQ.submittedByName || 'Pengunjung';
+      article.fromVisitor = true;
+      article.publishedBy = user.name;
+      article.publishedByRole = user.role;
+    }
+
     pbnUpsertArticle(article);
 
+    if (PBN_AD_REQ) pbnMarkRequestDone({ kind: 'ad', id: PBN_AD_REQ.id }, user);
+
     form.reset();
+    pbnExitAdEditMode();
 
     renderStats(user);
     renderTable(user);
+    if (typeof renderPublishedManager === 'function') renderPublishedManager(user);
 
     showToast(
-      article.status === 'published'
-        ? 'Iklan berhasil diterbitkan.'
-        : 'Iklan berhasil disimpan sebagai draf.'
+      wasEdit
+        ? 'Iklan berhasil diperbarui.'
+        : article.status === 'published'
+          ? 'Iklan berhasil diterbitkan.'
+          : 'Iklan berhasil disimpan sebagai draf.'
     );
   };
 }
 
 function openAdEditForm(id) {
+  const req = pbnGetAdRequests().find(x => x.id === id);
+  if (req) { pbnOpenAdFormForEdit(null, req, pbnCurrentUser()); return; }
   pbnEditRequestInForm('ads', id, pbnCurrentUser());
   return;
   const item = pbnGetAdRequests().find(r => r.id === id);
@@ -2426,6 +2528,10 @@ function renderMarketWidgetSettings() {
 ).value =
   settings.emas.phone || '';
   
+  const spay = settings.shopeepay || {};
+  document.getElementById('market-spay-enabled').checked = !!spay.enabled;
+  document.getElementById('market-spay-link').value = spay.link || '';
+
   document.getElementById(
     'market-auto-hide'
   ).value =
@@ -2584,6 +2690,11 @@ updatedAt:
     minute: '2-digit'
   }) + ' WIB'
 
+      },
+
+      shopeepay: {
+        enabled: document.getElementById('market-spay-enabled').checked,
+        link: document.getElementById('market-spay-link').value.trim()
       },
 
       autoHide:
@@ -3248,3 +3359,28 @@ root.querySelectorAll('[data-pbn-view]').forEach(b=>{
     }
   }catch(e){}
 }
+
+/* =========================================================
+   Label kolom otomatis untuk tampilan kartu di HP
+   (mengisi data-label tiap sel dari judul kolom tabel)
+   ========================================================= */
+(function () {
+  let timer = null;
+  function labelTables() {
+    document.querySelectorAll('.article-table').forEach(table => {
+      const heads = Array.from(table.querySelectorAll('thead th')).map(h => h.textContent.trim());
+      table.querySelectorAll('tbody tr').forEach(tr => {
+        Array.from(tr.children).forEach((td, i) => {
+          if (td.tagName !== 'TD' || td.hasAttribute('colspan')) return;
+          const label = heads[i] === 'Aksi' || heads[i] === 'Foto' ? '' : (heads[i] || '');
+          if (td.getAttribute('data-label') !== label) td.setAttribute('data-label', label);
+        });
+      });
+    });
+  }
+  function schedule() { clearTimeout(timer); timer = setTimeout(labelTables, 60); }
+  document.addEventListener('DOMContentLoaded', () => {
+    labelTables();
+    new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
+  });
+})();
