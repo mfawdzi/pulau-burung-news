@@ -1984,6 +1984,20 @@ function syncMarketWidget() {
 }
 
 /* Info Loker & Iklan buatan admin: nama pengunggah tidak ditampilkan di halaman publik */
+/* Nama penulis + keterangan peran: kiriman warga "(Kontributor)", redaksi "(Reporter/Admin/Super Admin)" */
+function pbnByline(a) {
+  const roleTag = { superadmin: 'Super Admin', admin: 'Admin', reporter: 'Reporter' };
+  if (a.fromVisitor) {
+    let text = (a.author || 'Pengunjung') + ' (Kontributor)';
+    const tag = roleTag[a.publishedByRole];
+    const lokerOrIklan = a.category === 'Info Loker' || a.type === 'iklan';
+    if (!lokerOrIklan && a.publishedBy && tag) text += ', ' + a.publishedBy + ' (' + tag + ')';
+    return text;
+  }
+  const tag = roleTag[a.authorRole];
+  return (a.author || '') + (tag ? ' (' + tag + ')' : '');
+}
+
 function pbnShowAuthor(a) {
   const lokerOrIklan = a.category === 'Info Loker' || a.type === 'iklan';
   return !(lokerOrIklan && !a.fromVisitor);
