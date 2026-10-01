@@ -11,7 +11,8 @@
 
 let PBN_EDIT_ID = null; // id artikel yang sedang diedit, null = mode tambah baru
 let PBN_FORM_IMAGE = null; // foto yang sedang dipilih di form Tambah/Ubah Konten (data URL base64)
-let PBN_FORM_CONTRIBUTOR = null; // nama pengunjung asli, diisi saat konten berasal dari Info Berita Warga
+let PBN_FORM_CONTRIBUTOR = null;
+let PBN_FORM_SOURCE = null; // {kind, id} kiriman pengunjung yang sedang diubah di form // nama pengunjung asli, diisi saat konten berasal dari Info Berita Warga
 document.addEventListener('pbn:data-changed', (e) => {
   const user = pbnCurrentUser();
   if (user) showDashboard(user);
@@ -282,7 +283,7 @@ function showDashboard(user) {
    ========================================================= */
 function renderRedaksiDashboard(user) {
   populateCategoryOptions();
-  resetForm();
+  if (!PBN_EDIT_ID && !PBN_FORM_SOURCE) resetForm();
   renderStats(user);
   renderTable(user);
   bindDashboardEvents(user);
@@ -448,7 +449,7 @@ function handleTableAction(btn, user) {
   const article = pbnGetArticleById(id);
   if (!article) return;
 
-  const canManage = pbnIsEditorInChief(user.role) || article.author === user.name;
+  const canManage = pbnIsEditorInChief(user.role) || article.author === user.name || (article.fromVisitor && pbnCanManageContent(user.role));
   if (!canManage) return;
 
   if (action === 'edit') {
@@ -647,6 +648,8 @@ function editLokerRequest(id) {
   showToast('Data loker berhasil diperbarui.');
 }
 function openLokerEditForm(id) {
+  pbnEditRequestInForm('loker', id, pbnCurrentUser());
+  return;
   const item = pbnGetLokerRequests().find(r => r.id === id);
 
   if (!item) {
@@ -709,6 +712,7 @@ function renderTips(user) {
           ${t.status !== 'diproses' ? `<button data-tip-action="diproses" data-tip-id="${t.id}">Diproses</button>` : ''}
           ${t.status !== 'diterbitkan' ? `<button class="primary" data-tip-action="diterbitkan" data-tip-id="${t.id}">Diterbitkan</button>` : ''}
           ${t.status !== 'ditolak' ? `<button data-tip-action="ditolak" data-tip-id="${t.id}">Tolak</button>` : ''}
+          <button class="primary" data-tip-action="edit" data-tip-id="${t.id}">Ubah</button>
           <button class="danger" data-tip-action="delete" data-tip-id="${t.id}">Hapus</button>
         </div>
       </td>
@@ -719,6 +723,7 @@ function renderTips(user) {
     btn.addEventListener('click', () => {
       const id = btn.getAttribute('data-tip-id');
       const action = btn.getAttribute('data-tip-action');
+      if (action === 'edit') { pbnEditRequestInForm('tip', id, user); return; }
       if (action === 'delete') {
         if (confirm('Hapus info berita ini?')) {
           pbnDeleteNewsTip(id);
@@ -1310,6 +1315,7 @@ function toggleAdminOnlyFields(user) {
 }
 
 function resetForm() {
+  PBN_FORM_SOURCE = null;
   PBN_EDIT_ID = null;
   PBN_FORM_IMAGE = null;
   PBN_FORM_CONTRIBUTOR = null;
@@ -1336,6 +1342,7 @@ function pbnMaybeSetHero(article) {
 }
 
 function pbnPublishAndOpenArticle(article, user) {
+  if (article.fromVisitor && !article.publishedByRole) article.publishedByRole = user.role;
   pbnUpsertArticle(article);
   pbnMaybeSetHero(article);
   renderStats(user);
@@ -1360,6 +1367,71 @@ function pbnPublishAndOpenArticle(article, user) {
     const formPanel = document.getElementById('form-panel');
     if (formPanel) formPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, 100);
+}
+
+/* Buka form "Tambah Konten Baru" dengan isi kiriman pengunjung sudah terisi */
+function pbnEditRequestInForm(kind, id, user) {
+  if (!user) return;
+  let req, art, extra = null;
+
+  if (kind === 'tip') {
+    req = pbnGetNewsTips().find(x => x.id === id);
+    if (!req) return;
+    art = {
+      type: 'berita', category: 'Peristiwa', title: req.title, village: req.village || '',
+      excerpt: (req.detail || '').length > 180 ? req.detail.substring(0, 180) + '...' : (req.detail || ''),
+      content: req.detail || '', image: req.image || null,
+      name: req.submittedByName || req.submittedBy || 'Pengunjung'
+    };
+  } else if (kind === 'loker') {
+    req = pbnGetLokerRequests().find(x => x.id === id);
+    if (!req) return;
+    art = {
+      type: 'berita', category: 'Info Loker', title: req.businessName, village: '',
+      excerpt: (req.detail || '').length > 180 ? req.detail.substring(0, 180) + '...' : (req.detail || ''),
+      content: 'Penanggung Jawab: ' + (req.contactName || '-') + '\nWhatsApp: ' + (req.phone || '-') + '\n\n' + (req.detail || ''),
+      image: req.image || null, name: req.submittedByName || req.contactName || 'Pengunjung'
+    };
+  } else {
+    req = pbnGetAdRequests().find(x => x.id === id);
+    if (!req) return;
+    art = {
+      type: 'iklan', category: 'Iklan', title: req.businessName, village: '',
+      excerpt: '', content: '', image: req.image || null, adSize: 'besar',
+      name: req.submittedByName || 'Pengunjung'
+    };
+    extra = { businessName: req.businessName, phone: req.phone, detail: req.detail, promoTexts: [] };
+  }
+
+  loadFormForEdit(Object.assign({ id: null, status: 'published', verifikasi: '', ticker: false, isHero: false, videoUrl: '', linkUrl: '' }, art), user);
+  PBN_EDIT_ID = null; // tetap mode "konten baru"
+  PBN_FORM_CONTRIBUTOR = art.name;
+  PBN_FORM_SOURCE = { kind: kind, id: id, extra: extra };
+
+  document.getElementById('form-title-label').textContent = 'Ubah Kiriman Pengunjung';
+  document.getElementById('form-submit-btn').textContent = 'Publikasikan';
+  const note = document.getElementById('form-contributor-note');
+  if (note) {
+    note.textContent = 'Kiriman dari: ' + art.name + ' (Kontributor). Rapikan isinya lalu klik Publikasikan.';
+    note.style.display = 'block';
+  }
+
+  const createNav = document.querySelector('[data-pbn-view="create"]');
+  if (createNav) createNav.click();
+  setTimeout(() => {
+    const formPanel = document.getElementById('form-panel');
+    if (formPanel) formPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 100);
+}
+
+function pbnMarkRequestDone(src, user) {
+  const who = { username: user.username, name: user.name };
+  if (src.kind === 'tip') pbnUpdateNewsTipStatus(src.id, 'diterbitkan', who);
+  else if (src.kind === 'loker') pbnUpdateLokerRequestStatus(src.id, 'selesai', who);
+  else pbnUpdateAdRequestStatus(src.id, 'selesai', who);
+  setTimeout(() => {
+    renderTips(user); renderLokerRequests(user); renderAds(user); pbnUpdateInboxBadge(user);
+  }, 0);
 }
 
 function loadFormForEdit(article, user) {
@@ -1471,6 +1543,17 @@ function submitForm(user) {
   }
 
 const isEdit = !!PBN_EDIT_ID;
+if (PBN_FORM_SOURCE) {
+  article.fromVisitor = true;
+  if (PBN_FORM_SOURCE.extra) Object.assign(article, PBN_FORM_SOURCE.extra);
+  pbnMarkRequestDone(PBN_FORM_SOURCE, user);
+}
+if (article.fromVisitor) {
+  article.publishedBy = user.name;
+  article.publishedByRole = user.role;
+} else if (!article.authorRole && article.author === user.name) {
+  article.authorRole = user.role;
+}
 
 pbnUpsertArticle(article);
 pbnMaybeSetHero(article);
@@ -1794,6 +1877,8 @@ function bindAdCreateForm(user) {
 }
 
 function openAdEditForm(id) {
+  pbnEditRequestInForm('ads', id, pbnCurrentUser());
+  return;
   const item = pbnGetAdRequests().find(r => r.id === id);
 
   if (!item) {
