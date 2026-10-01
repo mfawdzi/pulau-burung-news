@@ -578,3 +578,169 @@
 #shopee-ads-tbody .shopee-item-toggle{
   width:auto;
 }
+
+/* =========================================================
+   REDAKSI CONTROL CENTER — TAMPILAN MOBILE
+   Tanpa geser kiri-kanan: padding dirampingkan, tabel jadi
+   kartu, form satu kolom, tombol lebar penuh.
+   ========================================================= */
+
+/* Pengaman global: tidak ada elemen yang boleh melebihi layar */
+#dashboard-view,
+#redaksi-section,
+.pbn-redaksi-content,
+.pbn-view,
+.pbn-view .panel{ max-width:100%; min-width:0; }
+.pbn-view img,
+.pbn-view video,
+.pbn-view iframe,
+.pbn-view input,
+.pbn-view select,
+.pbn-view textarea{ max-width:100%; box-sizing:border-box; }
+.pbn-view .article-table td,
+.pbn-view .art-title,
+.pbn-view .art-meta,
+.pbn-view .form-note{ overflow-wrap:anywhere; word-break:break-word; }
+
+@media (max-width:720px){
+
+  /* ---- Ruang: kurangi tumpukan padding supaya isi lebih lebar ---- */
+  .dash-main > .wrap,
+  .dash-main .wrap{ padding-left:8px; padding-right:8px; }
+  .pbn-redaksi-content{ padding:10px 8px; border-radius:12px; }
+  .pbn-view .panel{ padding:14px 12px; border-radius:12px; }
+  .pbn-view .panel h2{ font-size:16px; margin-bottom:12px; padding-bottom:10px; }
+  .market-admin-box{ padding:12px; margin-top:12px; }
+  .market-admin-box h3{ font-size:16px; margin-bottom:12px; }
+  .pbn-page-title{ margin-bottom:10px; }
+
+  /* ---- Kartu angka (Ringkasan, Pengguna, dll): 2 kolom ringkas ---- */
+  .stat-row,
+  .pbn-summary-cards{
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    gap:8px !important;
+    margin-bottom:16px;
+  }
+  .stat-card,
+  .pbn-summary-card{ padding:12px !important; border-radius:10px; }
+  .stat-card .num,
+  .pbn-summary-card strong{ font-size:22px; }
+  .stat-card .label{ font-size:9px; }
+
+  /* ---- Kotak centang: sejajar dengan teksnya ---- */
+  .pbn-view .field label:has(input[type="checkbox"]),
+  .pbn-view .market-admin-main-toggle label{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    text-transform:none;
+    letter-spacing:0;
+    font-size:13px;
+    line-height:1.4;
+  }
+  .pbn-view input[type="checkbox"]{
+    width:18px !important;
+    height:18px;
+    flex:0 0 18px;
+    margin:0;
+  }
+
+  /* ---- Form: satu kolom, mudah disentuh ---- */
+  .field-row{ grid-template-columns:1fr !important; gap:0; }
+  .pbn-view .field input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  .pbn-view .field select,
+  .pbn-view .field textarea{
+    width:100%;
+    font-size:16px;         /* mencegah browser HP memperbesar layar saat mengetik */
+    padding:11px 12px;
+  }
+  .pbn-view input[type="file"]{ width:100%; font-size:13px; }
+  .form-actions{ flex-direction:column; gap:8px; }
+  .form-actions .btn,
+  .form-actions .btn-secondary,
+  .form-actions button{ width:100%; min-height:44px; justify-content:center; }
+  .emas-denom-row{ grid-template-columns:1fr 1fr auto; }
+
+  /* ---- Tabel -> kartu (tidak perlu geser) ---- */
+  .pbn-view div[style*="overflow-x:auto"],
+  .pbn-home-requests .panel > div[style*="overflow-x:auto"]{
+    overflow:visible !important;
+    max-height:none !important;
+    border-top:0 !important;
+  }
+  .pbn-view .article-table,
+  .pbn-home-requests .article-table{ min-width:0 !important; width:100%; display:block; font-size:12px; }
+  .pbn-view .article-table thead{ display:none; }
+  .pbn-view .article-table tbody{ display:block; }
+  .pbn-view .article-table tr{
+    display:block;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:10px 12px;
+    margin-bottom:10px;
+    box-shadow:0 1px 6px rgba(31,75,63,.06);
+  }
+  .pbn-view .article-table td{
+    display:block;
+    border:0 !important;
+    padding:6px 0 !important;
+    max-width:100% !important;
+    width:auto !important;
+    text-align:left;
+  }
+  .pbn-view .article-table td[data-label]:not([data-label=""])::before{
+    content:attr(data-label);
+    display:block;
+    margin-bottom:2px;
+    font:600 9px 'IBM Plex Mono',monospace;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:#6c8077;
+  }
+  .pbn-view .article-table td img{ max-width:100%; height:auto; }
+  .pbn-view .article-table td .req-thumb,
+  .pbn-view .article-table td > img{ width:64px; height:64px; object-fit:cover; border-radius:8px; }
+  .pbn-view .article-table td.table-empty{ text-align:center; padding:18px 8px !important; }
+  .pbn-view .article-table td:last-child:not(.table-empty){
+    margin-top:6px;
+    padding-top:10px !important;
+    border-top:1px dashed var(--line) !important;
+  }
+  .pbn-view .row-actions{ gap:6px; }
+  .pbn-view .row-actions button,
+  .pbn-view .article-table td > .btn-secondary,
+  .pbn-view .article-table td > button{
+    flex:1 1 auto;
+    min-height:38px;
+    padding:8px 12px;
+    font-size:12px;
+    margin:0 6px 6px 0;
+  }
+
+  /* ---- Kolom cari / isian di luar .field ---- */
+  .pbn-view .panel input[type="search"],
+  .pbn-view .panel input[type="text"],
+  .pbn-view .panel input[type="email"],
+  .pbn-view .panel input[type="url"]{ width:100%; font-size:16px; }
+
+  /* ---- Filter "Semua Konten" ---- */
+  .pbn-view .panel > select,
+  .pbn-view .filters select,
+  .pbn-view .table-filters select{ width:100%; margin-bottom:8px; }
+
+  /* ---- Permintaan masuk (Ringkasan) ---- */
+  .pbn-home-requests{ gap:12px; }
+  .pbn-home-heading{ flex-direction:column; align-items:flex-start; gap:4px; }
+
+  /* ---- Tombol umum ---- */
+  .pbn-view .btn,
+  .pbn-view .btn-secondary{ min-height:42px; }
+}
+
+@media (max-width:380px){
+  .dash-main .wrap{ padding-left:6px; padding-right:6px; }
+  .pbn-view .panel{ padding:12px 10px; }
+  .market-admin-box{ padding:10px; }
+  .emas-denom-row{ grid-template-columns:1fr auto; }
+}
