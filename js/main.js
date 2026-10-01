@@ -1530,7 +1530,8 @@ function bindMarketWidget() {
 
   if (
     !settings.kelapa.enabled &&
-    !settings.emas.enabled
+    !settings.emas.enabled &&
+    !pbnSpayActive(settings)
   ) {
     widget.style.display = 'none';
     return;
@@ -1674,7 +1675,70 @@ function openMarketCard(type) {
     data = settings.emas;
   }
 
+  if (type === 'shopeepay') {
+    data = settings.shopeepay;
+  }
+
   if (!data || !data.enabled) {
+    return;
+  }
+
+  card.classList.toggle('is-spay', type === 'shopeepay');
+
+  if (type === 'shopeepay') {
+
+    if (!pbnSpayActive(settings)) return;
+
+    content.innerHTML = `
+      <div class="spay-card">
+        <div class="spay-head">
+          <div class="spay-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13M3 12h18"/><path d="M12 8c-1.5-3.5-5-4-5-1.8C7 8 12 8 12 8zm0 0c1.5-3.5 5-4 5-1.8C17 8 12 8 12 8z"/></svg>
+          </div>
+          <div>
+            <div class="spay-eyebrow">Promo Harian</div>
+            <div class="spay-title">Klaim ShopeePay</div>
+          </div>
+        </div>
+
+        <p class="spay-lead">
+          Klaim ShoopePay harian Anda setiap hari di sini setiap mengunjungi situs PBN news.
+        </p>
+
+        <ol class="spay-steps">
+          <li>
+            <span class="spay-num">1</span>
+            <div>Klik tombol <strong>Buka Halaman Klaim</strong> di bawah ini.</div>
+          </li>
+          <li>
+            <span class="spay-num">2</span>
+            <div>Halaman terbuka di tab baru. Masuk ke akun Shopee Anda bila diminta.</div>
+          </li>
+          <li>
+            <span class="spay-num">3</span>
+            <div>Tekan tombol klaim pada halaman tersebut, lalu kembali ke Pulau Burung News.</div>
+          </li>
+        </ol>
+
+        <a
+          href="${pbnEscapeHtml(data.link)}"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="spay-cta"
+        >
+          Buka Halaman Klaim
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+
+        <div class="spay-foot">
+          Anda akan diarahkan ke situs Shopee. Ketersediaan klaim mengikuti ketentuan Shopee.
+        </div>
+      </div>
+    `;
+
+    buttons.style.display = 'none';
+    card.style.display = 'block';
+
     return;
   }
 
@@ -1964,6 +2028,12 @@ function initPopupVideo() {
    SINKRON WIDGET HARGA DENGAN DATA FIREBASE
    (tombol Kelapa/Emas hanya tampil jika dicentang di admin)
    ========================================================= */
+/* ShopeePay aktif hanya jika dicentang DAN link http(s) valid sudah diisi Super Admin */
+function pbnSpayActive(s) {
+  const p = (s && s.shopeepay) || {};
+  return !!p.enabled && /^https?:\/\//i.test(String(p.link || '').trim());
+}
+
 function syncMarketWidget() {
   const widget = document.getElementById('market-widget');
   if (!widget || !PBN_CACHE.ready.marketWidget) return;
@@ -1971,10 +2041,12 @@ function syncMarketWidget() {
   const s = pbnGetMarketWidget();
   const kelapaBtn = widget.querySelector('[data-market="kelapa"]');
   const emasBtn = widget.querySelector('[data-market="emas"]');
+  const spayBtn = widget.querySelector('[data-market="shopeepay"]');
   if (kelapaBtn) kelapaBtn.style.display = s.kelapa.enabled ? 'flex' : 'none';
   if (emasBtn) emasBtn.style.display = s.emas.enabled ? 'flex' : 'none';
+  if (spayBtn) spayBtn.style.display = pbnSpayActive(s) ? 'flex' : 'none';
 
-  const show = s.enabled && (s.kelapa.enabled || s.emas.enabled);
+  const show = s.enabled && (s.kelapa.enabled || s.emas.enabled || pbnSpayActive(s));
   widget.style.display = show ? 'block' : 'none';
 
     if (show && !widget.dataset.bound) {
