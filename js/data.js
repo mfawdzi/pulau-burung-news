@@ -50,6 +50,7 @@ const PBN_DEFAULT_MARKET_WIDGET = {
     buyLink: '', phone: '',
     denominations: [{ id: 'emas-1', label: '1 gram', price: 'Rp 2.450.000', buyback: 'Rp 2.300.000' }]
   },
+  shopeepay: { enabled: false, link: '' },
   autoHide: 10
 };
 
