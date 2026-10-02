@@ -75,7 +75,7 @@
            <div class="field">
             <label for="register-phone">Nomor WhatsApp</label>
             <input type="text" id="register-phone" placeholder="08xxxxxxxxxx" required>
-            <p class="form-note" style="margin:6px 0 0;">Dipakai untuk verifikasi jika Anda lupa kata sandi.</p>
+            <p class="form-note" style="margin:6px 0 0;">Dipakai redaksi untuk menghubungi Anda bila diperlukan.</p>
           </div>
           <div class="field">
   <label for="register-email">
@@ -87,12 +87,12 @@
     id="register-email"
     placeholder="nama@email.com"
     required>
-  <p class="form-note" style="margin:6px 0 0;">Dipakai untuk verifikasi jika Anda lupa kata sandi.</p>
+  <p class="form-note" style="margin:6px 0 0;">Dipakai redaksi untuk menghubungi Anda bila diperlukan.</p>
 </div>
           <div class="field">
             <label for="register-password">Kata Sandi</label>
             <div class="password-field">
-              <input type="password" id="register-password" autocomplete="new-password" required>
+              <input type="password" id="register-password" autocomplete="new-password" minlength="6" required>
               <button type="button" class="password-toggle" data-target="register-password" aria-label="Lihat kata sandi">👁</button>
             </div>
           </div>
@@ -1186,7 +1186,7 @@ Poin ketiga"></textarea>
           required>
 
         <p class="form-note">
-          Username digunakan untuk masuk ke akun.
+          Username digunakan untuk masuk ke akun dan tidak dapat diubah.
         </p>
       </div>
 
