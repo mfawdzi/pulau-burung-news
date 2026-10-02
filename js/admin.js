@@ -14,6 +14,7 @@ let PBN_FORM_IMAGE = null; // foto yang sedang dipilih di form Tambah/Ubah Konte
 let PBN_FORM_CONTRIBUTOR = null;
 let PBN_FORM_SOURCE = null; // {kind, id} kiriman pengunjung yang sedang diubah di form // nama pengunjung asli, diisi saat konten berasal dari Info Berita Warga
 document.addEventListener('pbn:data-changed', (e) => {
+  if (window.PBN_REDIRECTING) return;
   const user = pbnCurrentUser();
   if (user) showDashboard(user);
   else if (e.detail && e.detail.name === 'me') showLogin();
@@ -85,9 +86,11 @@ function bindLoginForm() {
     if (btn) btn.disabled = false;
     if (result.user) {
       errBox.style.display = 'none';
-      showDashboard(result.user);
+      // Setelah login, kembali ke halaman utama (bukan langsung ke dashboard)
+      window.PBN_REDIRECTING = true;
+      window.location.href = 'index.html';
     } else {
-      errBox.textContent = result.error || 'Username atau kata sandi salah.';
+      errBox.textContent = result.error || 'Email atau kata sandi salah. Jika belum punya akun, silakan daftar dulu di tab "Daftar Akun".';
       errBox.style.display = 'block';
     }
   });
@@ -142,10 +145,90 @@ let PBN_FORGOT_VERIFIED_USERNAME = null;
 
 function bindForgotPassword() {
   const openBtn = document.getElementById('open-forgot-password');
-  if (!openBtn) return;
-  // Kata sandi kini dikelola Firebase Auth dan tidak bisa diverifikasi lewat data publik.
+  const overlay = document.getElementById('forgot-password-overlay');
+  const closeBtn = document.getElementById('forgot-password-close');
+  const form = document.getElementById('forgot-verify-form');
+  const errBox = document.getElementById('forgot-verify-error');
+  const stepAsk = document.getElementById('forgot-step-verify');
+  const stepSent = document.getElementById('forgot-step-sent');
+  const resendBtn = document.getElementById('forgot-resend-btn');
+  const resendNote = document.getElementById('forgot-resend-note');
+  const doneBtn = document.getElementById('forgot-done-btn');
+  if (!openBtn || !overlay || !form) return;
+
+  let sentTo = '';
+  let cooldownTimer = null;
+
+  const close = () => {
+    overlay.classList.remove('open');
+    if (cooldownTimer) { clearInterval(cooldownTimer); cooldownTimer = null; }
+  };
+
+  // Jeda 60 detik sebelum boleh kirim ulang (mencegah spam & batas Firebase)
+  const startCooldown = () => {
+    let left = 60;
+    resendBtn.disabled = true;
+    resendNote.textContent = 'Belum menerima email? Anda bisa kirim ulang dalam ' + left + ' detik.';
+    if (cooldownTimer) clearInterval(cooldownTimer);
+    cooldownTimer = setInterval(() => {
+      left--;
+      if (left <= 0) {
+        clearInterval(cooldownTimer);
+        cooldownTimer = null;
+        resendBtn.disabled = false;
+        resendNote.textContent = 'Belum menerima email? Cek folder Spam, lalu kirim ulang bila perlu.';
+      } else {
+        resendNote.textContent = 'Belum menerima email? Anda bisa kirim ulang dalam ' + left + ' detik.';
+      }
+    }, 1000);
+  };
+
   openBtn.addEventListener('click', () => {
-    showToast('Untuk reset kata sandi, hubungi Admin Super / redaksi PBN lewat WhatsApp.', true);
+    errBox.style.display = 'none';
+    stepAsk.style.display = '';
+    stepSent.style.display = 'none';
+    document.getElementById('forgot-email').value = document.getElementById('login-username').value.trim();
+    overlay.classList.add('open');
+  });
+  if (closeBtn) closeBtn.addEventListener('click', close);
+  if (doneBtn) doneBtn.addEventListener('click', close);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+  async function send(email, triggerBtn) {
+    if (triggerBtn) triggerBtn.disabled = true;
+    const result = await pbnSendPasswordReset(email);
+    if (result.error) {
+      if (triggerBtn) triggerBtn.disabled = false;
+      return result;
+    }
+    sentTo = email.trim().toLowerCase();
+    document.getElementById('forgot-sent-to').textContent = sentTo;
+    stepAsk.style.display = 'none';
+    stepSent.style.display = '';
+    startCooldown();
+    if (triggerBtn === form.querySelector('button[type="submit"]')) triggerBtn.disabled = false;
+    return result;
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const result = await send(
+      document.getElementById('forgot-email').value,
+      form.querySelector('button[type="submit"]')
+    );
+    if (result.error) {
+      errBox.textContent = result.error;
+      errBox.style.display = 'block';
+    }
+  });
+
+  resendBtn.addEventListener('click', async () => {
+    const result = await send(sentTo, null);
+    if (result.error) {
+      resendNote.textContent = result.error;
+    } else {
+      showToast('Tautan dikirim ulang.');
+    }
   });
 }
 
@@ -2181,6 +2264,7 @@ function openDashboardProfile(user) {
   ).value =
     fullUser.username || '';
   document.getElementById('dashboard-profile-username').readOnly = true;
+  document.getElementById('dashboard-profile-email').readOnly = true;
 
   document.getElementById(
     'dashboard-profile-name'
