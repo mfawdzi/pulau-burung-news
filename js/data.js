@@ -65,7 +65,7 @@ const PBN_DEFAULT_BOARD_CARDS = [
 /* ---------- Cache lokal, disinkronkan real-time dari Firestore ---------- */
 const PBN_CACHE = {
   articles: [], users: [], lokerRequests: [], newsTips: [], adRequests: [],
-  comments: [], likes: [], boardCards: [],
+  comments: [], likes: [], boardCards: [], me: null,
   marketWidget: JSON.parse(JSON.stringify(PBN_DEFAULT_MARKET_WIDGET)),
   shopeeAds: JSON.parse(JSON.stringify(PBN_DEFAULT_SHOPEE_ADS)),
   popupVideo: JSON.parse(JSON.stringify(PBN_DEFAULT_POPUP_VIDEO)),
@@ -80,8 +80,8 @@ function pbnNewId() {
   return 'id' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
-function pbnSubscribeCollection(colName, cacheKey) {
-  db.collection(colName).onSnapshot(snap => {
+function pbnSubscribeCollection(colName, cacheKey, query) {
+  return (query || db.collection(colName)).onSnapshot(snap => {
     PBN_CACHE[cacheKey] = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     PBN_CACHE.ready[cacheKey] = true;
     pbnNotifyChange(cacheKey);
@@ -118,19 +118,75 @@ async function pbnSeedIfEmpty() {
   }
 }
 
+/* Data publik: boleh dibaca siapa saja (sesuai firestore.rules) */
 function pbnInit() {
   pbnSubscribeCollection('articles', 'articles');
-  pbnSubscribeCollection('users', 'users');
-  pbnSubscribeCollection('lokerRequests', 'lokerRequests');
-  pbnSubscribeCollection('newsTips', 'newsTips');
-  pbnSubscribeCollection('adRequests', 'adRequests');
   pbnSubscribeCollection('comments', 'comments');
   pbnSubscribeCollection('likes', 'likes');
   pbnSubscribeCollection('boardCards', 'boardCards');
   pbnSubscribeDoc('settings', 'marketWidget', 'marketWidget', PBN_DEFAULT_MARKET_WIDGET);
   pbnSubscribeDoc('settings', 'shopeeAds', 'shopeeAds', PBN_DEFAULT_SHOPEE_ADS);
   pbnSubscribeDoc('settings', 'popupVideo', 'popupVideo', PBN_DEFAULT_POPUP_VIDEO);
-  pbnSeedIfEmpty();
+  pbnInitAuth();
+}
+
+/* Data privat: hanya dipantau setelah login, sesuai peran */
+let PBN_ME_UNSUB = null;
+let PBN_PRIVATE_UNSUBS = [];
+const PBN_PRIVATE_KEYS = ['users', 'lokerRequests', 'newsTips', 'adRequests'];
+
+function pbnClearPrivate() {
+  PBN_PRIVATE_UNSUBS.forEach(f => { try { f(); } catch (e) {} });
+  PBN_PRIVATE_UNSUBS = [];
+  PBN_PRIVATE_KEYS.forEach(k => { PBN_CACHE[k] = []; PBN_CACHE.ready[k] = false; });
+}
+
+function pbnSubscribePrivate(me) {
+  pbnClearPrivate();
+  const isSuper = me.role === 'superadmin';
+  const isEditor = isSuper || me.role === 'admin';
+  const isStaff = isEditor || me.role === 'reporter';
+  const own = col => db.collection(col).where('submittedBy', '==', me.username);
+  const sub = (col, q) => PBN_PRIVATE_UNSUBS.push(pbnSubscribeCollection(col, col, q));
+  if (isSuper) sub('users');
+  sub('lokerRequests', isEditor ? null : own('lokerRequests'));
+  sub('adRequests', isEditor ? null : own('adRequests'));
+  sub('newsTips', isStaff ? null : own('newsTips'));
+  if (isEditor) pbnSeedIfEmpty();
+}
+
+function pbnInitAuth() {
+  auth.onAuthStateChanged(fbUser => {
+    if (PBN_ME_UNSUB) { PBN_ME_UNSUB(); PBN_ME_UNSUB = null; }
+    if (!fbUser) {
+      pbnClearPrivate();
+      PBN_CACHE.me = null;
+      sessionStorage.removeItem(PBN_KEYS.SESSION);
+      PBN_CACHE.ready.auth = true;
+      pbnNotifyChange('me');
+      return;
+    }
+    PBN_ME_UNSUB = db.collection('users').doc(fbUser.uid).onSnapshot(snap => {
+      if (!auth.currentUser || auth.currentUser.uid !== fbUser.uid) return;
+      const prevRole = PBN_CACHE.me && PBN_CACHE.me.role;
+      if (snap.exists) {
+        PBN_CACHE.me = { id: snap.id, ...snap.data() };
+        pbnSaveHint(PBN_CACHE.me);
+        if (prevRole !== PBN_CACHE.me.role) pbnSubscribePrivate(PBN_CACHE.me);
+      } else {
+        // Profil belum dibuat (sedang daftar) atau sudah dihapus admin
+        PBN_CACHE.me = null;
+        pbnClearPrivate();
+        sessionStorage.removeItem(PBN_KEYS.SESSION);
+      }
+      PBN_CACHE.ready.auth = true;
+      pbnNotifyChange('me');
+    }, err => {
+      console.error('[Auth] gagal membaca profil', err);
+      PBN_CACHE.ready.auth = true;
+      pbnNotifyChange('me');
+    });
+  });
 }
 
 /* ---------- Articles ---------- */
@@ -284,90 +340,152 @@ function pbnDeleteComment(id) {
   db.collection('comments').doc(id).delete().catch(e => console.error(e));
 }
 
-/* ---------- Users / Auth (login berbasis cache, bukan Firebase Auth) ---------- */
-function pbnGetUsers() { return PBN_CACHE.users; }
-function pbnGetUserByUsername(username) { return PBN_CACHE.users.find(u => u.username === username) || null; }
+/* ---------- Users / Auth (Firebase Authentication) ----------
+   Login pakai username; di belakang layar username dijadikan email
+   "username@pbn.local". Kata sandi disimpan & di-hash oleh Firebase Auth,
+   TIDAK pernah disimpan di Firestore. Dokumen users/{uid} hanya berisi
+   profil + role. Keamanan sebenarnya dijaga oleh firestore.rules. */
+const PBN_AUTH_DOMAIN = 'pbn.local';
+function pbnUsernameToEmail(username) {
+  return (username || '').trim().toLowerCase() + '@' + PBN_AUTH_DOMAIN;
+}
 
-function pbnLogin(username, password) {
+function pbnAuthErrorMessage(e) {
+  switch (e && e.code) {
+    case 'auth/invalid-credential':
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+    case 'auth/invalid-email':
+      return 'Username atau kata sandi salah.';
+    case 'auth/too-many-requests': return 'Terlalu banyak percobaan. Coba lagi beberapa menit lagi.';
+    case 'auth/email-already-in-use': return 'Username sudah dipakai, coba yang lain.';
+    case 'auth/weak-password': return 'Kata sandi minimal 6 karakter.';
+    case 'auth/network-request-failed': return 'Koneksi internet bermasalah. Coba lagi.';
+    case 'auth/requires-recent-login': return 'Demi keamanan, keluar lalu masuk lagi sebelum mengganti kata sandi.';
+    default: return 'Terjadi kesalahan' + (e && e.code ? ' (' + e.code + ')' : '') + '. Coba lagi.';
+  }
+}
+
+function pbnPublicUser(p) {
+  return { uid: p.id, username: p.username, role: p.role, name: p.name, phone: p.phone, email: p.email, avatar: p.avatar };
+}
+// Hint tampilan saja (agar UI tidak berkedip sebelum Firebase siap). BUKAN dasar otorisasi.
+function pbnSaveHint(p) {
+  try { sessionStorage.setItem(PBN_KEYS.SESSION, JSON.stringify(pbnPublicUser(p))); } catch (e) {}
+}
+
+function pbnGetUsers() { return PBN_CACHE.users; }
+function pbnGetUserByUsername(username) {
+  return PBN_CACHE.users.find(u => u.username === username)
+    || (PBN_CACHE.me && PBN_CACHE.me.username === username ? PBN_CACHE.me : null);
+}
+
+async function pbnLogin(username, password) {
   username = (username || '').trim().toLowerCase();
-  password = (password || '').trim();
-  const user = PBN_CACHE.users.find(u => u.username === username && u.password === password);
-  if (user) {
-    sessionStorage.setItem(PBN_KEYS.SESSION, JSON.stringify({ username: user.username, role: user.role, name: user.name }));
-    return user;
+  try {
+    const cred = await auth.signInWithEmailAndPassword(pbnUsernameToEmail(username), password || '');
+    const snap = await db.collection('users').doc(cred.user.uid).get();
+    if (!snap.exists) {
+      await auth.signOut();
+      return { error: 'Akun tidak ditemukan atau sudah dihapus.' };
+    }
+    const profile = { id: snap.id, ...snap.data() };
+    pbnSaveHint(profile);
+    return { user: pbnPublicUser(profile) };
+  } catch (e) {
+    return { error: pbnAuthErrorMessage(e) };
+  }
+}
+
+function pbnLogout() {
+  sessionStorage.removeItem(PBN_KEYS.SESSION);
+  PBN_CACHE.me = null;
+  PBN_CACHE.ready.auth = true;
+  pbnClearPrivate();
+  auth.signOut().catch(e => console.error(e));
+}
+
+function pbnCurrentUser() {
+  if (PBN_CACHE.me) return pbnPublicUser(PBN_CACHE.me);
+  if (!PBN_CACHE.ready.auth) {
+    try { return JSON.parse(sessionStorage.getItem(PBN_KEYS.SESSION)); } catch (e) {}
   }
   return null;
 }
-function pbnLogout() { sessionStorage.removeItem(PBN_KEYS.SESSION); }
-function pbnCurrentUser() {
-  try { return JSON.parse(sessionStorage.getItem(PBN_KEYS.SESSION)); } catch (e) { return null; }
-}
 
-function pbnRegisterUser({ username, password, name, phone, email }) {
+async function pbnRegisterUser({ username, password, name, phone, email }) {
   username = (username || '').trim().toLowerCase();
   if (!username || !password || !name) return { error: 'Semua kolom wajib diisi.' };
-  if (pbnGetUserByUsername(username)) return { error: 'Username sudah dipakai, coba yang lain.' };
-  const newUser = { username, password, role: 'pengunjung', name: name.trim(), phone: (phone || '').trim(), email: (email || '').trim(), avatar: null };
-  db.collection('users').doc(username).set(newUser).catch(e => console.error(e));
-  return { user: newUser };
+  if (!/^[a-z0-9._-]{3,30}$/.test(username)) return { error: 'Username 3–30 karakter: huruf kecil, angka, titik, garis bawah, atau tanda hubung.' };
+  if (password.length < 6) return { error: 'Kata sandi minimal 6 karakter.' };
+  let cred;
+  try {
+    cred = await auth.createUserWithEmailAndPassword(pbnUsernameToEmail(username), password);
+  } catch (e) {
+    return { error: pbnAuthErrorMessage(e) };
+  }
+  const profile = { username, role: 'pengunjung', name: name.trim(), phone: (phone || '').trim(), email: (email || '').trim(), avatar: null };
+  try {
+    await db.collection('users').doc(cred.user.uid).set(profile);
+  } catch (e) {
+    console.error(e);
+    await cred.user.delete().catch(() => {});
+    return { error: 'Gagal menyimpan profil. Coba lagi.' };
+  }
+  pbnSaveHint({ id: cred.user.uid, ...profile });
+  return { user: pbnPublicUser({ id: cred.user.uid, ...profile }) };
 }
 
 function pbnUpdateUserRole(username, newRole) {
-  if (!pbnGetUserByUsername(username)) return false;
-  db.collection('users').doc(username).update({ role: newRole }).catch(e => console.error(e));
+  const u = PBN_CACHE.users.find(x => x.username === username);
+  if (!u) return false;
+  db.collection('users').doc(u.id).update({ role: newRole }).catch(e => { console.error(e); if (typeof showToast === 'function') showToast('Gagal mengubah peran (izin ditolak).', true); });
   return true;
 }
+
+// Super admin menghapus profil user lain. Akun loginnya (Authentication) tetap
+// ada sampai dihapus manual di Firebase Console, tapi tanpa profil ia tidak bisa masuk.
 function pbnDeleteUser(username) {
-  db.collection('users').doc(username).delete().catch(e => console.error(e));
+  const u = PBN_CACHE.users.find(x => x.username === username);
+  if (!u) return;
+  db.collection('users').doc(u.id).delete().catch(e => console.error(e));
 }
 
-function pbnUpdateProfile(username, { username: newUsername, name, phone, email, password, avatar }) {
-  const user = pbnGetUserByUsername(username);
-  if (!user) return null;
-  const updated = { ...user };
-  if (newUsername && newUsername !== user.username) {
-    const norm = newUsername.trim().toLowerCase();
-    if (!/^[a-z0-9._-]{3,30}$/.test(norm)) return null;
-    if (pbnGetUserByUsername(norm)) return null;
-    updated.username = norm;
+// Hapus akun milik sendiri (profil + akun login)
+async function pbnDeleteOwnAccount() {
+  const me = PBN_CACHE.me;
+  if (!me || !auth.currentUser) return { error: 'Anda belum masuk.' };
+  try {
+    await db.collection('users').doc(me.id).delete();
+    await auth.currentUser.delete();
+    return {};
+  } catch (e) {
+    return { error: pbnAuthErrorMessage(e) };
   }
-  if (name) updated.name = name.trim();
-  if (phone !== undefined) updated.phone = phone.trim();
-  if (email !== undefined) updated.email = email.trim();
-  if (password) updated.password = password;
-  if (avatar !== undefined) updated.avatar = avatar;
-
-  if (updated.username !== user.username) {
-    const batch = db.batch();
-    batch.delete(db.collection('users').doc(user.username));
-    batch.set(db.collection('users').doc(updated.username), updated);
-    batch.commit().catch(e => console.error(e));
-  } else {
-    db.collection('users').doc(user.username).set(updated, { merge: true }).catch(e => console.error(e));
-  }
-
-  const session = pbnCurrentUser();
-  if (session && session.username === username) {
-    sessionStorage.setItem(PBN_KEYS.SESSION, JSON.stringify({
-      username: updated.username, role: updated.role, name: updated.name,
-      phone: updated.phone, email: updated.email, avatar: updated.avatar
-    }));
-  }
-  return updated;
 }
 
-function pbnVerifyIdentity(username, email, phone) {
-  const user = pbnGetUserByUsername((username || '').trim().toLowerCase());
-  if (!user) return null;
-  const emailMatch = (user.email || '').trim().toLowerCase() === (email || '').trim().toLowerCase();
-  const phoneMatch = (user.phone || '').replace(/\D/g, '') === (phone || '').replace(/\D/g, '');
-  if (emailMatch && phoneMatch && user.email && user.phone) return user;
-  return null;
-}
-function pbnResetPassword(username, newPassword) {
-  if (!pbnGetUserByUsername(username)) return false;
-  db.collection('users').doc(username).update({ password: newPassword }).catch(e => console.error(e));
-  return true;
+// Hanya untuk profil sendiri. Username tidak bisa diubah.
+function pbnUpdateProfile(username, { name, phone, email, password, avatar }) {
+  const me = PBN_CACHE.me;
+  if (!me || me.username !== username) return null;
+  const patch = {};
+  if (name) patch.name = name.trim();
+  if (phone !== undefined) patch.phone = phone.trim();
+  if (email !== undefined) patch.email = email.trim();
+  if (avatar !== undefined) patch.avatar = avatar;
+  PBN_CACHE.me = { ...me, ...patch };
+  pbnSaveHint(PBN_CACHE.me);
+  db.collection('users').doc(me.id).update(patch).catch(e => console.error(e));
+  if (password) {
+    if (password.length < 6) {
+      if (typeof showToast === 'function') showToast('Kata sandi minimal 6 karakter (kata sandi tidak diubah).', true);
+    } else if (auth.currentUser) {
+      auth.currentUser.updatePassword(password).catch(e => {
+        if (typeof showToast === 'function') showToast(pbnAuthErrorMessage(e), true);
+      });
+    }
+  }
+  return PBN_CACHE.me;
 }
 
 /* ---------- Suka (Like) Berita ---------- */
