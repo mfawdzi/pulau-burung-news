@@ -88,7 +88,7 @@ function bindLoginForm() {
       errBox.style.display = 'none';
       // Setelah login, kembali ke halaman utama (bukan langsung ke dashboard)
       window.PBN_REDIRECTING = true;
-      window.location.href = 'index.html';
+      window.location.href = './';
     } else {
       errBox.textContent = result.error || 'Email atau kata sandi salah. Jika belum punya akun, silakan daftar dulu di tab "Daftar Akun".';
       errBox.style.display = 'block';
@@ -122,7 +122,7 @@ function bindRegisterForm() {
     errBox.style.display = 'none';
 
     form.reset();
-    window.location.href = 'index.html';
+    window.location.href = './';
   });
 }
 
