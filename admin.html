@@ -36,8 +36,8 @@
 
         <form id="login-form">
           <div class="field">
-            <label for="login-username">Username</label>
-            <input type="text" id="login-username" autocomplete="username" required>
+            <label for="login-username">Email</label>
+            <input type="email" id="login-username" autocomplete="email" placeholder="nama@email.com" required>
           </div>
           <div class="field">
             <label for="login-password">Kata Sandi</label>
@@ -87,7 +87,7 @@
     id="register-email"
     placeholder="nama@email.com"
     required>
-  <p class="form-note" style="margin:6px 0 0;">Dipakai redaksi untuk menghubungi Anda bila diperlukan.</p>
+  <p class="form-note" style="margin:6px 0 0;">Dipakai untuk masuk dan mereset kata sandi. Gunakan email aktif milik Anda.</p>
 </div>
           <div class="field">
             <label for="register-password">Kata Sandi</label>
@@ -1282,46 +1282,29 @@ Poin ketiga"></textarea>
 
       <div id="forgot-step-verify">
         <h2>Lupa Kata Sandi</h2>
-        <p class="form-note">Masukkan username, email, dan nomor WhatsApp yang Anda daftarkan untuk memverifikasi identitas Anda.</p>
+        <p class="form-note">Masukkan email akun Anda. Kami akan mengirim tautan untuk membuat kata sandi baru.</p>
         <div class="login-error" id="forgot-verify-error"></div>
         <form id="forgot-verify-form">
           <div class="field">
-            <label for="forgot-username">Username</label>
-            <input type="text" id="forgot-username" required>
-          </div>
-          <div class="field">
             <label for="forgot-email">Email Terdaftar</label>
-            <input type="email" id="forgot-email" required>
+            <input type="email" id="forgot-email" autocomplete="email" placeholder="nama@email.com" required>
           </div>
-          <div class="field">
-            <label for="forgot-phone">Nomor WhatsApp Terdaftar</label>
-            <input type="text" id="forgot-phone" placeholder="08xxxxxxxxxx" required>
-          </div>
-          <button type="submit" class="btn btn-block">VERIFIKASI IDENTITAS</button>
+          <button type="submit" class="btn btn-block">KIRIM TAUTAN RESET</button>
         </form>
       </div>
 
-      <div id="forgot-step-reset" style="display:none;">
-        <h2>Buat Kata Sandi Baru</h2>
-        <p class="form-note">Identitas terverifikasi. Silakan buat kata sandi baru untuk akun Anda.</p>
-        <div class="login-error" id="forgot-reset-error"></div>
-        <form id="forgot-reset-form">
-          <div class="field">
-            <label for="forgot-new-password">Kata Sandi Baru</label>
-            <div class="password-field">
-              <input type="password" id="forgot-new-password" autocomplete="new-password" required minlength="4">
-              <button type="button" class="password-toggle" data-target="forgot-new-password" aria-label="Lihat kata sandi">👁</button>
-            </div>
-          </div>
-          <div class="field">
-            <label for="forgot-new-password-confirm">Ulangi Kata Sandi Baru</label>
-            <div class="password-field">
-              <input type="password" id="forgot-new-password-confirm" autocomplete="new-password" required minlength="4">
-              <button type="button" class="password-toggle" data-target="forgot-new-password-confirm" aria-label="Lihat kata sandi">👁</button>
-            </div>
-          </div>
-          <button type="submit" class="btn btn-block">SIMPAN KATA SANDI BARU</button>
-        </form>
+      <div id="forgot-step-sent" style="display:none;">
+        <h2>Cek Email Anda</h2>
+        <p class="form-note">Jika <strong id="forgot-sent-to"></strong> terdaftar, kami sudah mengirim tautan untuk membuat kata sandi baru.</p>
+        <ol style="margin:14px 0 18px 18px;padding:0;font-size:14px;line-height:1.7;">
+          <li>Buka email Anda. Jika tidak ada di kotak masuk, cek folder <strong>Spam</strong> atau <strong>Promosi</strong> (cari kata "firebase" atau "reset").</li>
+          <li>Klik tautan di dalam email tersebut.</li>
+          <li>Di halaman yang terbuka, ketik <strong>kata sandi baru</strong> lalu simpan.</li>
+          <li>Kembali ke situs ini dan <strong>masuk</strong> dengan email dan kata sandi baru.</li>
+        </ol>
+        <p class="form-note" id="forgot-resend-note" style="margin:0 0 10px;"></p>
+        <button type="button" class="btn btn-block" id="forgot-resend-btn" style="margin-bottom:10px;">KIRIM ULANG TAUTAN</button>
+        <button type="button" class="btn btn-block" id="forgot-done-btn" style="background:transparent;color:var(--ink);border:1px solid var(--ink);">TUTUP</button>
       </div>
     </div>
   </div>
