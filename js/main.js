@@ -1036,7 +1036,7 @@ function openArticle(id) {
              <textarea id="comment-text-inline" placeholder="Tulis komentar Anda..." required></textarea>
              <button type="submit" class="btn" style="border:none;">KIRIM KOMENTAR</button>
            </form>`
-        : `<p class="comment-login-note"><a href="admin.html">Masuk atau daftar</a> untuk menulis komentar.</p>`}
+        : `<p class="comment-login-note"><a href="admin">Masuk atau daftar</a> untuk menulis komentar.</p>`}
     </div>
   `;
   document.getElementById('modal-close').addEventListener('click', closeArticle);
@@ -1193,7 +1193,7 @@ function renderAuthArea() {
   const user = pbnCurrentUser();
 
   if (!user) {
-    wrap.innerHTML = `<a href="admin.html" class="redaksi-link">Masuk Redaksi</a>`;
+    wrap.innerHTML = `<a href="admin" class="redaksi-link">Masuk Redaksi</a>`;
     return;
   }
 
@@ -1228,7 +1228,7 @@ function renderAuthArea() {
 
   document.getElementById('profile-dashboard-btn').addEventListener('click', () => {
   dropdown.classList.remove('open');
-  window.location.href = 'admin.html';
+  window.location.href = 'admin';
 });
     document.getElementById('profile-logout-btn').addEventListener('click', () => {
     pbnLogout();
@@ -1246,7 +1246,7 @@ function renderNavProfileMini() {
 
   if (!user) {
     wrap.innerHTML = `
-      <a href="admin.html" class="nav-profile-mini-icon" aria-label="Masuk Redaksi">
+      <a href="admin" class="nav-profile-mini-icon" aria-label="Masuk Redaksi">
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
           <circle cx="12" cy="7" r="4"></circle>
@@ -1296,7 +1296,7 @@ function renderNavProfileMini() {
 
   document.getElementById('nav-profile-dashboard-btn').addEventListener('click', () => {
     dropdown.classList.remove('open');
-    window.location.href = 'admin.html';
+    window.location.href = 'admin';
   });
   document.getElementById('nav-profile-logout-btn').addEventListener('click', () => {
     pbnLogout();
