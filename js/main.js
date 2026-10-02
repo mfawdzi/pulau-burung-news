@@ -80,6 +80,7 @@ function renderAll() {
   renderPeristiwa(berita);
   renderLoker(berita);
   renderAdSlots(all);
+  if (PBN_SEARCH_QUERY) renderSearchResults();
 }
 
 /* Style latar untuk menampilkan foto yang diunggah pada kartu/thumbnail.
@@ -817,6 +818,7 @@ function bindNav() {
       e.preventDefault();
       const cat = link.getAttribute('data-category');
       PBN_ACTIVE_CATEGORY = cat || null;
+      pbnCloseSearch();
       document.querySelectorAll('nav.primary a').forEach(a => a.classList.remove('active'));
       const navMatch = document.querySelector(`nav.primary a[data-category="${cat}"]`);
       if (navMatch) navMatch.classList.add('active');
@@ -1128,14 +1130,7 @@ function bindSearch() {
   if (!input) return;
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
-      const q = input.value.trim().toLowerCase();
-      if (!q) return;
-      const hit = getPublished().find(a => a.type === 'berita' && a.title.toLowerCase().includes(q));
-      if (hit) {
-        openArticle(hit.id);
-      } else {
-        alert('Berita tidak ditemukan untuk kata kunci: ' + input.value);
-      }
+      pbnRunSearch(input.value);
     }
   });
 }
@@ -2074,3 +2069,206 @@ function pbnShowAuthor(a) {
   const lokerOrIklan = a.category === 'Info Loker' || a.type === 'iklan';
   return !(lokerOrIklan && !a.fromVisitor);
 }
+
+
+/* =========================================================
+   HASIL PENCARIAN BERITA (daftar terfilter ala portal berita)
+   ========================================================= */
+let PBN_SEARCH_QUERY = '';
+let PBN_SEARCH_SORT = 'relevan';
+let PBN_SEARCH_CAT = '';
+let PBN_SEARCH_LIMIT = 10;
+
+function pbnSearchWords(q) {
+  return String(q || '').toLowerCase().split(/\s+/).filter(Boolean);
+}
+
+function pbnHighlight(text, words) {
+  const raw = String(text || '');
+  if (!words.length) return pbnEscapeHtml(raw);
+  const re = new RegExp('(' + words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')', 'gi');
+  return raw.split(re).map((part, i) => i % 2 ? '<mark>' + pbnEscapeHtml(part) + '</mark>' : pbnEscapeHtml(part)).join('');
+}
+
+function pbnSearchArticles(q) {
+  const words = pbnSearchWords(q);
+  const phrase = words.join(' ');
+  const out = [];
+  getPublished().filter(a => a.type === 'berita').forEach(a => {
+    const title = String(a.title || '').toLowerCase();
+    const cat = String(a.category || '').toLowerCase();
+    const village = String(a.village || '').toLowerCase();
+    const excerpt = String(a.excerpt || '').toLowerCase();
+    const content = String(a.content || '').toLowerCase();
+    const hay = title + ' ' + cat + ' ' + village + ' ' + excerpt + ' ' + content;
+    if (!words.every(w => hay.includes(w))) return;
+
+    let score = 0;
+    if (title.includes(phrase)) score += 20;
+    if (cat === phrase) score += 15; else if (cat.includes(phrase)) score += 8;
+    words.forEach(w => {
+      if (title.includes(w)) score += 6;
+      if (cat.includes(w)) score += 4;
+      if (village.includes(w)) score += 2;
+      if (excerpt.includes(w)) score += 2;
+      if (content.includes(w)) score += 1;
+    });
+    out.push({ a: a, score: score });
+  });
+  return out;
+}
+
+function pbnSearchSnippet(a, words) {
+  const excerpt = String(a.excerpt || '').replace(/\s+/g, ' ').trim();
+  const body = String(a.content || '').replace(/\s+/g, ' ').trim();
+  const has = t => words.some(w => t.toLowerCase().includes(w));
+  if (excerpt && (has(excerpt) || !has(body))) return excerpt;
+  if (!body) return excerpt;
+
+  const lower = body.toLowerCase();
+  const positions = words.map(w => lower.indexOf(w)).filter(p => p >= 0);
+  const first = positions.length ? Math.min.apply(null, positions) : 0;
+  const start = Math.max(0, first - 60);
+  return (start > 0 ? '… ' : '') + body.substring(start, start + 170) + (start + 170 < body.length ? ' …' : '');
+}
+
+function renderSearchResults() {
+  const box = document.getElementById('search-results');
+  const main = document.querySelector('main');
+  if (!box || !main) return;
+
+  const q = PBN_SEARCH_QUERY;
+  if (!q) {
+    box.style.display = 'none';
+    box.innerHTML = '';
+    main.classList.remove('is-searching');
+    return;
+  }
+  main.classList.add('is-searching');
+  box.style.display = 'block';
+
+  const words = pbnSearchWords(q);
+  let results = pbnSearchArticles(q);
+  const allCount = results.length;
+
+  const catCount = {};
+  results.forEach(r => { catCount[r.a.category] = (catCount[r.a.category] || 0) + 1; });
+  if (PBN_SEARCH_CAT && !catCount[PBN_SEARCH_CAT]) PBN_SEARCH_CAT = '';
+  if (PBN_SEARCH_CAT) results = results.filter(r => r.a.category === PBN_SEARCH_CAT);
+
+  results.sort(PBN_SEARCH_SORT === 'terbaru'
+    ? (x, y) => new Date(y.a.date) - new Date(x.a.date)
+    : (x, y) => y.score - x.score || new Date(y.a.date) - new Date(x.a.date));
+
+  const total = results.length;
+  const shown = results.slice(0, PBN_SEARCH_LIMIT);
+  const safeQ = pbnEscapeHtml(q);
+
+  const chips = Object.keys(catCount).sort((a, b) => catCount[b] - catCount[a]).map(c => `
+    <button type="button" class="sr-chip${PBN_SEARCH_CAT === c ? ' active' : ''}" data-cat="${pbnEscapeHtml(c)}">${pbnEscapeHtml(c)} <span>${catCount[c]}</span></button>
+  `).join('');
+
+  const rows = shown.map(r => {
+    const a = r.a;
+    const meta = [pbnFormatDate(a.date), a.village ? pbnEscapeHtml(a.village) : ''].filter(Boolean).join(' · ');
+    return `
+      <article class="sr-item" data-id="${a.id}">
+        <div class="sr-thumb"${pbnImageStyle(a)}></div>
+        <div class="sr-body">
+          <span class="tag ${pbnCategoryTagClass(a.category)}">${pbnHighlight(a.category, words)}</span>
+          <h3>${pbnHighlight(a.title, words)}</h3>
+          <p>${pbnHighlight(pbnSearchSnippet(a, words), words)}</p>
+          <div class="meta">${meta}</div>
+        </div>
+      </article>`;
+  }).join('');
+
+  box.innerHTML = `
+    <div class="sr-head">
+      <a href="#" class="sr-back" id="search-back">← Kembali ke Beranda</a>
+      <h1>Hasil pencarian: <em>“${safeQ}”</em></h1>
+      <div class="sr-count">${allCount ? allCount + ' berita ditemukan' : 'Tidak ada berita ditemukan'}</div>
+    </div>
+    ${allCount ? `
+    <div class="sr-toolbar">
+      <div class="sr-chips">
+        <button type="button" class="sr-chip${PBN_SEARCH_CAT ? '' : ' active'}" data-cat="">Semua <span>${allCount}</span></button>
+        ${chips}
+      </div>
+      <div class="sr-sort">
+        <button type="button" class="${PBN_SEARCH_SORT === 'relevan' ? 'active' : ''}" data-sort="relevan">Paling relevan</button>
+        <button type="button" class="${PBN_SEARCH_SORT === 'terbaru' ? 'active' : ''}" data-sort="terbaru">Terbaru</button>
+      </div>
+    </div>
+    <div class="sr-list">${rows}</div>
+    ${total > shown.length ? `<button type="button" class="sr-more" id="search-more">TAMPILKAN LEBIH BANYAK (${total - shown.length} LAGI)</button>` : ''}
+    ` : `
+    <div class="sr-empty">
+      <strong>Tidak ada berita untuk “${safeQ}”.</strong>
+      <ul>
+        <li>Periksa kembali ejaan kata kunci.</li>
+        <li>Coba kata yang lebih umum atau lebih sedikit kata.</li>
+        <li>Coba cari nama rubrik, misalnya “Pemerintahan” atau “Ekonomi”.</li>
+      </ul>
+    </div>`}
+  `;
+
+  document.getElementById('search-back').addEventListener('click', (e) => { e.preventDefault(); pbnCloseSearch(); });
+  const list = box.querySelector('.sr-list');
+  if (list) bindClickable(list);
+  box.querySelectorAll('.sr-chip').forEach(btn => btn.addEventListener('click', () => {
+    PBN_SEARCH_CAT = btn.getAttribute('data-cat');
+    PBN_SEARCH_LIMIT = 10;
+    renderSearchResults();
+  }));
+  box.querySelectorAll('.sr-sort button').forEach(btn => btn.addEventListener('click', () => {
+    PBN_SEARCH_SORT = btn.getAttribute('data-sort');
+    renderSearchResults();
+  }));
+  const more = document.getElementById('search-more');
+  if (more) more.addEventListener('click', () => { PBN_SEARCH_LIMIT += 10; renderSearchResults(); });
+}
+
+function pbnApplySearch(q, pushUrl) {
+  q = String(q || '').trim();
+  if (q !== PBN_SEARCH_QUERY) {
+    PBN_SEARCH_CAT = '';
+    PBN_SEARCH_LIMIT = 10;
+    PBN_SEARCH_SORT = 'relevan';
+  }
+  PBN_SEARCH_QUERY = q;
+  const input = document.getElementById('search-input');
+  if (input) input.value = q;
+  if (pushUrl) {
+    const url = window.location.pathname + (q ? '?cari=' + encodeURIComponent(q) : '');
+    history.pushState(null, '', url);
+  }
+  renderSearchResults();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function pbnRunSearch(q) {
+  if (!String(q || '').trim()) return;
+  pbnApplySearch(q, true);
+}
+
+function pbnCloseSearch() {
+  if (!PBN_SEARCH_QUERY) return;
+  pbnApplySearch('', true);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const icon = document.querySelector('.search-box span');
+  const input = document.getElementById('search-input');
+  if (icon && input) {
+    icon.style.cursor = 'pointer';
+    icon.addEventListener('click', () => pbnRunSearch(input.value));
+  }
+  const initial = new URLSearchParams(window.location.search).get('cari');
+  if (initial) pbnApplySearch(initial, false);
+});
+
+window.addEventListener('popstate', () => {
+  const q = new URLSearchParams(window.location.search).get('cari') || '';
+  if (q !== PBN_SEARCH_QUERY) pbnApplySearch(q, false);
+});
