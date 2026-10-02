@@ -16,6 +16,7 @@ let PBN_FORM_SOURCE = null; // {kind, id} kiriman pengunjung yang sedang diubah 
 document.addEventListener('pbn:data-changed', (e) => {
   const user = pbnCurrentUser();
   if (user) showDashboard(user);
+  else if (e.detail && e.detail.name === 'me') showLogin();
 
   // Gambar ulang panel begitu datanya sampai dari Firebase
   const name = e.detail && e.detail.name;
@@ -73,17 +74,20 @@ function showLogin() {
 function bindLoginForm() {
   const form = document.getElementById('login-form');
   if (!form) return;
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const username = document.getElementById('login-username').value.trim();
     const password = document.getElementById('login-password').value;
-    const user = pbnLogin(username, password);
     const errBox = document.getElementById('login-error');
-    if (user) {
+    const btn = form.querySelector('button[type="submit"]');
+    if (btn) btn.disabled = true;
+    const result = await pbnLogin(username, password);
+    if (btn) btn.disabled = false;
+    if (result.user) {
       errBox.style.display = 'none';
-      showDashboard(user);
+      showDashboard(result.user);
     } else {
-      errBox.textContent = 'Username atau kata sandi salah.';
+      errBox.textContent = result.error || 'Username atau kata sandi salah.';
       errBox.style.display = 'block';
     }
   });
@@ -93,7 +97,7 @@ function bindLoginForm() {
 function bindRegisterForm() {
   const form = document.getElementById('register-form');
   if (!form) return;
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = document.getElementById('register-name').value.trim();
     const username = document.getElementById('register-username').value.trim();
@@ -103,28 +107,16 @@ function bindRegisterForm() {
   document.getElementById('register-email').value.trim();
     const errBox = document.getElementById('register-error');
 
-    const result = pbnRegisterUser({
-  name,
-  username,
-  password,
-  phone,
-  email
-});
+    const btn = form.querySelector('button[type="submit"]');
+    if (btn) btn.disabled = true;
+    const result = await pbnRegisterUser({ name, username, password, phone, email });
+    if (btn) btn.disabled = false;
     if (result.error) {
       errBox.textContent = result.error;
       errBox.style.display = 'block';
       return;
     }
     errBox.style.display = 'none';
-
-    // Simpan sesi langsung dari data yang baru dibuat, TANPA menunggu
-    // sinkronisasi cache dari Firestore (yang butuh waktu beberapa saat).
-    // Memanggil pbnLogin() di sini bisa gagal karena cache belum terisi.
-    sessionStorage.setItem('pbn_session_v1', JSON.stringify({
-      username: result.user.username,
-      role: result.user.role,
-      name: result.user.name
-    }));
 
     form.reset();
     window.location.href = 'index.html';
@@ -150,77 +142,10 @@ let PBN_FORGOT_VERIFIED_USERNAME = null;
 
 function bindForgotPassword() {
   const openBtn = document.getElementById('open-forgot-password');
-  const overlay = document.getElementById('forgot-password-overlay');
-  const closeBtn = document.getElementById('forgot-password-close');
-  const verifyForm = document.getElementById('forgot-verify-form');
-  const resetForm = document.getElementById('forgot-reset-form');
-  if (!openBtn || !overlay) return;
-
-  function resetModal() {
-    PBN_FORGOT_VERIFIED_USERNAME = null;
-    document.getElementById('forgot-step-verify').style.display = 'block';
-    document.getElementById('forgot-step-reset').style.display = 'none';
-    document.getElementById('forgot-verify-error').style.display = 'none';
-    document.getElementById('forgot-reset-error').style.display = 'none';
-    verifyForm.reset();
-    resetForm.reset();
-  }
-
+  if (!openBtn) return;
+  // Kata sandi kini dikelola Firebase Auth dan tidak bisa diverifikasi lewat data publik.
   openBtn.addEventListener('click', () => {
-    resetModal();
-    overlay.classList.add('open');
-  });
-  closeBtn.addEventListener('click', () => overlay.classList.remove('open'));
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) overlay.classList.remove('open');
-  });
-
-  verifyForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const username = document.getElementById('forgot-username').value.trim();
-    const email = document.getElementById('forgot-email').value.trim();
-    const phone = document.getElementById('forgot-phone').value.trim();
-    const errBox = document.getElementById('forgot-verify-error');
-
-    const user = pbnVerifyIdentity(username, email, phone);
-    if (!user) {
-      errBox.textContent = 'Data tidak cocok. Periksa kembali username, email, dan nomor WhatsApp Anda.';
-      errBox.style.display = 'block';
-      return;
-    }
-
-    errBox.style.display = 'none';
-    PBN_FORGOT_VERIFIED_USERNAME = user.username;
-    document.getElementById('forgot-step-verify').style.display = 'none';
-    document.getElementById('forgot-step-reset').style.display = 'block';
-  });
-
-  resetForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const pw1 = document.getElementById('forgot-new-password').value;
-    const pw2 = document.getElementById('forgot-new-password-confirm').value;
-    const errBox = document.getElementById('forgot-reset-error');
-
-    if (!PBN_FORGOT_VERIFIED_USERNAME) {
-      errBox.textContent = 'Sesi verifikasi tidak valid, silakan ulangi dari awal.';
-      errBox.style.display = 'block';
-      return;
-    }
-    if (pw1 !== pw2) {
-      errBox.textContent = 'Kata sandi baru dan konfirmasinya tidak sama.';
-      errBox.style.display = 'block';
-      return;
-    }
-    if (pw1.length < 4) {
-      errBox.textContent = 'Kata sandi minimal 4 karakter.';
-      errBox.style.display = 'block';
-      return;
-    }
-
-    pbnResetPassword(PBN_FORGOT_VERIFIED_USERNAME, pw1);
-    errBox.style.display = 'none';
-    overlay.classList.remove('open');
-    showToast('Kata sandi berhasil diperbarui. Silakan masuk dengan kata sandi baru.');
+    showToast('Untuk reset kata sandi, hubungi Admin Super / redaksi PBN lewat WhatsApp.', true);
   });
 }
 
@@ -1212,8 +1137,8 @@ function openUserDetailModal(username) {
   document.getElementById('user-detail-phone').value = user.phone || '-';
 
   const pwInput = document.getElementById('user-detail-password');
-  pwInput.value = user.password || '-';
-  pwInput.type = 'password';
+  pwInput.value = 'Terenkripsi (tidak dapat dilihat)';
+  pwInput.type = 'text';
   const pwToggle = document.querySelector('.password-toggle[data-target="user-detail-password"]');
   if (pwToggle) { pwToggle.textContent = '👁'; pwToggle.setAttribute('aria-label', 'Lihat kata sandi'); }
 
@@ -2255,6 +2180,7 @@ function openDashboardProfile(user) {
     'dashboard-profile-username'
   ).value =
     fullUser.username || '';
+  document.getElementById('dashboard-profile-username').readOnly = true;
 
   document.getElementById(
     'dashboard-profile-name'
@@ -2419,7 +2345,7 @@ function saveDashboardProfile(user) {
 }
 
 
-function deleteDashboardProfile(user) {
+async function deleteDashboardProfile(user) {
 
   /* Super Admin tidak boleh menghapus dirinya sendiri */
   if (user.role === 'superadmin') {
@@ -2439,9 +2365,11 @@ function deleteDashboardProfile(user) {
 
   if (!yakin) return;
   /* SEMUA AKUN NON-SUPER ADMIN DIHAPUS LANGSUNG */
-  pbnDeleteUser(
-    user.username
-  );
+  const del = await pbnDeleteOwnAccount();
+  if (del.error) {
+    showToast(del.error, true);
+    return;
+  }
 
   pbnLogout();
 
@@ -3353,7 +3281,7 @@ root.querySelectorAll('[data-pbn-view]').forEach(b=>{
     if(box){
       box.innerHTML=
         '<div class="pbn-summary-card"><small>Total Konten</small><strong>'+articles.length+'</strong></div>'+
-        '<div class="pbn-summary-card"><small>Pengguna</small><strong>'+users.length+'</strong></div>'+
+        '<div class="pbn-summary-card"><small>Pengguna</small><strong>'+(user.role==='superadmin'?users.length:'-')+'</strong></div>'+
         '<div class="pbn-summary-card"><small>Berita</small><strong>'+articles.filter(a=>a.type!=="iklan").length+'</strong></div>'+
         '<div class="pbn-summary-card"><small>Status Redaksi</small><strong>Aktif</strong></div>';
     }
