@@ -814,6 +814,13 @@ function bindClickable(container) {
 
 /* Terapkan rubrik aktif + (opsional) update URL supaya tiap rubrik punya link sendiri */
 function pbnApplyCategory(cat, pushUrl) {
+  if (pushUrl) {
+    // Klik menu rubrik = benar-benar reload halaman ke rubrik itu
+    const slug = cat ? pbnSlugify(cat) : '';
+    window.location.hash = slug ? ('kategori-' + slug) : '';
+    window.location.reload();
+    return;
+  }
   PBN_ACTIVE_CATEGORY = cat || null;
   pbnCloseSearch();
   document.querySelectorAll('nav.primary a').forEach(a => a.classList.remove('active'));
@@ -823,10 +830,6 @@ function pbnApplyCategory(cat, pushUrl) {
   if (moreMenu) moreMenu.classList.remove('open');
   renderAll();
   window.scrollTo({ top: 0, behavior: 'smooth' });
-  if (pushUrl) {
-    const slug = cat ? pbnSlugify(cat) : '';
-    history.pushState(null, '', slug ? ('#kategori-' + slug) : (window.location.pathname + window.location.search));
-  }
 }
 
 /* Buka rubrik sesuai URL (#kategori-<slug>), dipakai untuk link rubrik yang dibagikan */
