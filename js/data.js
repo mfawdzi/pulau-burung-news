@@ -341,24 +341,21 @@ function pbnDeleteComment(id) {
 }
 
 /* ---------- Users / Auth (Firebase Authentication) ----------
-   Login pakai username; di belakang layar username dijadikan email
-   "username@pbn.local". Kata sandi disimpan & di-hash oleh Firebase Auth,
-   TIDAK pernah disimpan di Firestore. Dokumen users/{uid} hanya berisi
-   profil + role. Keamanan sebenarnya dijaga oleh firestore.rules. */
-const PBN_AUTH_DOMAIN = 'pbn.local';
-function pbnUsernameToEmail(username) {
-  return (username || '').trim().toLowerCase() + '@' + PBN_AUTH_DOMAIN;
-}
-
+   Login memakai EMAIL + kata sandi. Kata sandi disimpan & di-hash oleh
+   Firebase Auth, TIDAK pernah disimpan di Firestore. Dokumen users/{uid}
+   berisi profil + role. Username dijaga unik lewat koleksi usernames/{username}.
+   Lupa kata sandi: Firebase mengirim tautan reset ke email pengguna.
+   Keamanan sebenarnya dijaga oleh firestore.rules. */
 function pbnAuthErrorMessage(e) {
   switch (e && e.code) {
     case 'auth/invalid-credential':
     case 'auth/user-not-found':
     case 'auth/wrong-password':
+      return 'Email atau kata sandi salah. Jika belum punya akun, silakan daftar dulu di tab "Daftar Akun".';
     case 'auth/invalid-email':
-      return 'Username atau kata sandi salah.';
+    case 'auth/missing-email': return 'Format email tidak valid.';
     case 'auth/too-many-requests': return 'Terlalu banyak percobaan. Coba lagi beberapa menit lagi.';
-    case 'auth/email-already-in-use': return 'Username sudah dipakai, coba yang lain.';
+    case 'auth/email-already-in-use': return 'Email ini sudah terdaftar. Silakan masuk, atau pakai "Lupa kata sandi?".';
     case 'auth/weak-password': return 'Kata sandi minimal 6 karakter.';
     case 'auth/network-request-failed': return 'Koneksi internet bermasalah. Coba lagi.';
     case 'auth/requires-recent-login': return 'Demi keamanan, keluar lalu masuk lagi sebelum mengganti kata sandi.';
@@ -380,10 +377,10 @@ function pbnGetUserByUsername(username) {
     || (PBN_CACHE.me && PBN_CACHE.me.username === username ? PBN_CACHE.me : null);
 }
 
-async function pbnLogin(username, password) {
-  username = (username || '').trim().toLowerCase();
+async function pbnLogin(email, password) {
+  email = (email || '').trim().toLowerCase();
   try {
-    const cred = await auth.signInWithEmailAndPassword(pbnUsernameToEmail(username), password || '');
+    const cred = await auth.signInWithEmailAndPassword(email, password || '');
     const snap = await db.collection('users').doc(cred.user.uid).get();
     if (!snap.exists) {
       await auth.signOut();
@@ -392,6 +389,19 @@ async function pbnLogin(username, password) {
     const profile = { id: snap.id, ...snap.data() };
     pbnSaveHint(profile);
     return { user: pbnPublicUser(profile) };
+  } catch (e) {
+    return { error: pbnAuthErrorMessage(e) };
+  }
+}
+
+// Kirim tautan reset kata sandi ke email. Firebase tidak memberi tahu apakah
+// email terdaftar atau tidak (sengaja, agar daftar akun tidak bisa ditebak).
+async function pbnSendPasswordReset(email) {
+  email = (email || '').trim().toLowerCase();
+  if (!email) return { error: 'Email wajib diisi.' };
+  try {
+    await auth.sendPasswordResetEmail(email);
+    return {};
   } catch (e) {
     return { error: pbnAuthErrorMessage(e) };
   }
@@ -415,25 +425,33 @@ function pbnCurrentUser() {
 
 async function pbnRegisterUser({ username, password, name, phone, email }) {
   username = (username || '').trim().toLowerCase();
-  if (!username || !password || !name) return { error: 'Semua kolom wajib diisi.' };
+  email = (email || '').trim().toLowerCase();
+  if (!username || !password || !name || !email) return { error: 'Semua kolom wajib diisi.' };
   if (!/^[a-z0-9._-]{3,30}$/.test(username)) return { error: 'Username 3–30 karakter: huruf kecil, angka, titik, garis bawah, atau tanda hubung.' };
   if (password.length < 6) return { error: 'Kata sandi minimal 6 karakter.' };
   let cred;
   try {
-    cred = await auth.createUserWithEmailAndPassword(pbnUsernameToEmail(username), password);
+    cred = await auth.createUserWithEmailAndPassword(email, password);
   } catch (e) {
     return { error: pbnAuthErrorMessage(e) };
   }
-  const profile = { username, role: 'pengunjung', name: name.trim(), phone: (phone || '').trim(), email: (email || '').trim(), avatar: null };
+  const uid = cred.user.uid;
+  const profile = { username, role: 'pengunjung', name: name.trim(), phone: (phone || '').trim(), email, avatar: null };
   try {
-    await db.collection('users').doc(cred.user.uid).set(profile);
+    // Atomik: klaim username (gagal bila sudah dipakai) + simpan profil
+    const batch = db.batch();
+    batch.set(db.collection('usernames').doc(username), { uid });
+    batch.set(db.collection('users').doc(uid), profile);
+    await batch.commit();
   } catch (e) {
     console.error(e);
     await cred.user.delete().catch(() => {});
-    return { error: 'Gagal menyimpan profil. Coba lagi.' };
+    return { error: e && e.code === 'permission-denied'
+      ? 'Username sudah dipakai. Coba username lain.'
+      : 'Gagal menyimpan profil. Coba lagi.' };
   }
-  pbnSaveHint({ id: cred.user.uid, ...profile });
-  return { user: pbnPublicUser({ id: cred.user.uid, ...profile }) };
+  pbnSaveHint({ id: uid, ...profile });
+  return { user: pbnPublicUser({ id: uid, ...profile }) };
 }
 
 function pbnUpdateUserRole(username, newRole) {
@@ -443,20 +461,27 @@ function pbnUpdateUserRole(username, newRole) {
   return true;
 }
 
-// Super admin menghapus profil user lain. Akun loginnya (Authentication) tetap
-// ada sampai dihapus manual di Firebase Console, tapi tanpa profil ia tidak bisa masuk.
+// Super admin menghapus profil user lain (username dibebaskan). Akun loginnya
+// (Authentication) tetap ada sampai dihapus manual di Firebase Console, tapi
+// tanpa profil ia tidak bisa masuk.
 function pbnDeleteUser(username) {
   const u = PBN_CACHE.users.find(x => x.username === username);
   if (!u) return;
-  db.collection('users').doc(u.id).delete().catch(e => console.error(e));
+  const batch = db.batch();
+  batch.delete(db.collection('users').doc(u.id));
+  batch.delete(db.collection('usernames').doc(u.username));
+  batch.commit().catch(e => console.error(e));
 }
 
-// Hapus akun milik sendiri (profil + akun login)
+// Hapus akun milik sendiri (profil + username + akun login)
 async function pbnDeleteOwnAccount() {
   const me = PBN_CACHE.me;
   if (!me || !auth.currentUser) return { error: 'Anda belum masuk.' };
   try {
-    await db.collection('users').doc(me.id).delete();
+    const batch = db.batch();
+    batch.delete(db.collection('users').doc(me.id));
+    batch.delete(db.collection('usernames').doc(me.username));
+    await batch.commit();
     await auth.currentUser.delete();
     return {};
   } catch (e) {
@@ -464,14 +489,13 @@ async function pbnDeleteOwnAccount() {
   }
 }
 
-// Hanya untuk profil sendiri. Username tidak bisa diubah.
+// Hanya untuk profil sendiri. Username & email (email login) tidak bisa diubah.
 function pbnUpdateProfile(username, { name, phone, email, password, avatar }) {
   const me = PBN_CACHE.me;
   if (!me || me.username !== username) return null;
   const patch = {};
   if (name) patch.name = name.trim();
   if (phone !== undefined) patch.phone = phone.trim();
-  if (email !== undefined) patch.email = email.trim();
   if (avatar !== undefined) patch.avatar = avatar;
   PBN_CACHE.me = { ...me, ...patch };
   pbnSaveHint(PBN_CACHE.me);
