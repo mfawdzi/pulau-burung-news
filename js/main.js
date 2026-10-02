@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
   syncMarketWidget();
   initShopeeWidget();
   initPopupVideo();
-  openArticleFromHash();
+  if (!openCategoryFromHash()) openArticleFromHash();
   // Cek tiap 30 detik apakah giliran iklan (rotasi 5 menit) sudah berganti
   setInterval(() => {
     renderAdSlots(getPublished());
@@ -812,20 +812,40 @@ function bindClickable(container) {
   });
 }
 
+/* Terapkan rubrik aktif + (opsional) update URL supaya tiap rubrik punya link sendiri */
+function pbnApplyCategory(cat, pushUrl) {
+  PBN_ACTIVE_CATEGORY = cat || null;
+  pbnCloseSearch();
+  document.querySelectorAll('nav.primary a').forEach(a => a.classList.remove('active'));
+  const navMatch = document.querySelector(`nav.primary a[data-category="${cat}"]`);
+  if (navMatch) navMatch.classList.add('active');
+  const moreMenu = document.getElementById('nav-more-menu');
+  if (moreMenu) moreMenu.classList.remove('open');
+  renderAll();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (pushUrl) {
+    const slug = cat ? pbnSlugify(cat) : '';
+    history.pushState(null, '', slug ? ('#kategori-' + slug) : (window.location.pathname + window.location.search));
+  }
+}
+
+/* Buka rubrik sesuai URL (#kategori-<slug>), dipakai untuk link rubrik yang dibagikan */
+function openCategoryFromHash() {
+  const hash = window.location.hash || '';
+  const match = hash.match(/^#kategori-(.+)$/);
+  if (!match) return false;
+  const link = Array.from(document.querySelectorAll('a[data-category]'))
+    .find(a => pbnSlugify(a.getAttribute('data-category') || '') === match[1]);
+  if (!link) return false;
+  pbnApplyCategory(link.getAttribute('data-category'), false);
+  return true;
+}
+
 function bindNav() {
   document.querySelectorAll('a[data-category]').forEach(link => {
     link.addEventListener('click', (e) => {
       e.preventDefault();
-      const cat = link.getAttribute('data-category');
-      PBN_ACTIVE_CATEGORY = cat || null;
-      pbnCloseSearch();
-      document.querySelectorAll('nav.primary a').forEach(a => a.classList.remove('active'));
-      const navMatch = document.querySelector(`nav.primary a[data-category="${cat}"]`);
-      if (navMatch) navMatch.classList.add('active');
-      const moreMenu = document.getElementById('nav-more-menu');
-      if (moreMenu) moreMenu.classList.remove('open');
-      renderAll();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      pbnApplyCategory(link.getAttribute('data-category'), true);
     });
   });
 
@@ -1042,7 +1062,7 @@ function openArticle(id) {
   document.getElementById('modal-close').addEventListener('click', closeArticle);
   overlay.classList.add('open');
   document.body.style.overflow = 'hidden';
-  history.pushState(null, '', '#berita-' + id);
+  history.pushState(null, '', '#' + pbnSlugify(article.title));
 
   const readmoreBtn = document.getElementById('modal-readmore-btn');
   if (readmoreBtn) {
@@ -1452,12 +1472,10 @@ function renderComments(articleId) {
 
 /* ---------- Deep-link berita lewat hash (#berita-<id>), dipakai untuk bagikan link ---------- */
 function openArticleFromHash() {
-  const hash = window.location.hash || '';
-  const match = hash.match(/^#berita-(.+)$/);
-  if (match) {
-    const article = pbnGetArticleById(match[1]);
-    if (article) openArticle(match[1]);
-  }
+  const slug = decodeURIComponent((window.location.hash || '').replace(/^#/, ''));
+  if (!slug) return;
+  const article = PBN_CACHE.articles.find(a => pbnSlugify(a.title) === slug);
+  if (article) openArticle(article.id);
 }
 
 /* ---------- Toast ---------- */
@@ -2271,4 +2289,13 @@ document.addEventListener('DOMContentLoaded', () => {
 window.addEventListener('popstate', () => {
   const q = new URLSearchParams(window.location.search).get('cari') || '';
   if (q !== PBN_SEARCH_QUERY) pbnApplySearch(q, false);
+
+  const hash = window.location.hash || '';
+  if (hash.startsWith('#kategori-')) {
+    openCategoryFromHash();
+  } else if (hash) {
+    openArticleFromHash();
+  } else if (PBN_ACTIVE_CATEGORY) {
+    pbnApplyCategory('', false);
+  }
 });
