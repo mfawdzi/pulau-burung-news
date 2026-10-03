@@ -2487,3 +2487,36 @@ window.addEventListener('pageshow', (e) => {
     window.location.reload();
   }
 });
+
+/* =========================================================
+   Layar loading awal — hilang setelah data berita & status login siap
+   ========================================================= */
+(function pbnInitLoader() {
+  const startedAt = Date.now();
+  const MIN_SHOW_MS = 600;   // tampil minimal (biar tidak berkedip kalau data sangat cepat)
+  const MAX_WAIT_MS = 8000;  // batas tunggu maksimal kalau koneksi lambat
+  let hidden = false;
+
+  function hideLoader() {
+    if (hidden) return;
+    hidden = true;
+    const wait = Math.max(0, MIN_SHOW_MS - (Date.now() - startedAt));
+    setTimeout(() => {
+      const el = document.getElementById('pbn-loader');
+      if (el) el.classList.add('hide');
+      // Setelah efek memudar selesai, tampilkan isi halaman
+      setTimeout(() => {
+        if (el) el.remove();
+        document.body.classList.remove('pbn-loading');
+      }, 300);
+    }, wait);
+  }
+
+  function checkReady() {
+    if (PBN_CACHE.ready.articles && PBN_CACHE.ready.auth) hideLoader();
+  }
+
+  document.addEventListener('pbn:data-changed', checkReady);
+  document.addEventListener('DOMContentLoaded', checkReady);
+  setTimeout(hideLoader, MAX_WAIT_MS);
+})();
