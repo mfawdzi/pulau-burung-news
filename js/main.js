@@ -811,7 +811,7 @@ function bindClickable(container) {
     el.addEventListener('click', () => {
       const article = pbnGetArticleById(el.getAttribute('data-id'));
       if (!article) return;
-      window.location.hash = pbnSlugify(article.title);
+      history.replaceState(null, '', window.location.pathname + '#' + pbnSlugify(article.title));
       window.location.reload();
     });
   });
@@ -821,8 +821,8 @@ function bindClickable(container) {
 function pbnApplyCategory(cat, pushUrl) {
   if (pushUrl) {
     // Klik menu rubrik = benar-benar reload halaman ke rubrik itu
-    const slug = cat ? pbnSlugify(cat) : '';
-    window.location.hash = slug ? ('kategori-' + slug) : '';
+      const slug = cat ? pbnSlugify(cat) : '';
+    history.replaceState(null, '', window.location.pathname + (slug ? ('#kategori-' + slug) : ''));
     window.location.reload();
     return;
   }
