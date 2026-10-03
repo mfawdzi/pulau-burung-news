@@ -2138,8 +2138,88 @@ footer{
     grid-template-columns:1fr;
   }
 
+  /* -------------------------
+     FOOTER DI HP (ringkas & rapi, 3 kolom sejajar antar baris)
+     ------------------------- */
+  footer{
+    padding:26px 0 16px;
+  }
+
+  /* Rubrik | Tentang | Kerja Sama: tiga kolom. Kolom tengah dibuat sedikit
+     lebih lebar karena tulisannya paling panjang. */
   .footer-grid{
-    grid-template-columns:1fr;
+    grid-template-columns:1fr 1.45fr 1fr;
+    gap:0 8px;
+    padding-bottom:18px;
+    margin-bottom:14px;
+  }
+
+  /* Nama + deskripsi: penuh, dipisah garis tipis dari menu */
+  .footer-grid > div:first-child{
+    grid-column:1 / -1;
+    margin-bottom:20px;
+    padding-bottom:18px;
+    border-bottom:1px solid rgba(237,230,214,0.12);
+  }
+
+  /* Tiga kolom menu memakai "subgrid": baris ke-1, ke-2, ke-3, dst. di tiap
+     kolom otomatis SEJAJAR, walaupun ada tulisan yang patah jadi 2 baris. */
+  .footer-grid > div:not(:first-child){
+    grid-row:2 / span 5;
+    display:grid;
+    grid-template-rows:subgrid;
+    min-width:0;
+    text-align:center;
+  }
+  .footer-grid > div:nth-child(2){ grid-column:1; }
+  .footer-grid > div:nth-child(3){ grid-column:2; }
+  .footer-grid > div:nth-child(4){ grid-column:3; }
+
+  .footer-brand{
+    font-size:19px;
+    margin-bottom:6px;
+  }
+
+  .footer-grid p{
+    font-size:12px;
+    line-height:1.55;
+    margin-bottom:0;
+    color:rgba(237,230,214,0.7);
+  }
+
+  /* Judul kolom: kecil, diberi garis bawah supaya rapi */
+  .footer-grid h4{
+    font-size:9.5px;
+    margin:0 0 4px;
+    padding-bottom:7px;
+    border-bottom:1px solid rgba(237,230,214,0.14);
+  }
+
+  /* Tautan: rata tengah kanan-kiri; naik-turunnya mulai dari ATAS barisnya,
+     jadi kalau satu tulisan patah 2 baris, yang lain tetap sejajar dengan
+     baris pertamanya. */
+  .footer-grid a{
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    text-align:center;
+    font-size:11.5px;
+    line-height:1.35;
+    padding:6px 0;
+    margin-bottom:0;
+  }
+
+  /* Baris hak cipta: rata tengah, tidak menyisakan 1 kata sendirian */
+  .bottom-bar{
+    flex-direction:column;
+    align-items:center;
+    text-align:center;
+    gap:4px;
+    font-size:10px;
+    line-height:1.5;
+  }
+  .bottom-bar span{
+    text-wrap:balance;
   }
 
   .modal-box{
