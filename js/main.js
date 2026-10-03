@@ -2294,3 +2294,12 @@ window.addEventListener('popstate', () => {
   // ke halaman sebelumnya, bukan sekadar ganti tampilan lewat JS.
   window.location.reload();
 });
+
+// Sebagian browser mobile (terutama saat swipe back) tidak memicu 'popstate',
+// melainkan mengembalikan halaman dari cache (bfcache) begitu saja tanpa
+// reload. Event 'pageshow' dengan persisted=true khusus menangkap momen itu.
+window.addEventListener('pageshow', (e) => {
+  if (e.persisted) {
+    window.location.reload();
+  }
+});
