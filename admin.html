@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/admin.css">
+<link rel="stylesheet" href="css/analytics.css">
 </head>
 <body>
 
@@ -189,6 +190,7 @@
             <div class="pbn-view pbn-view-summary active">
               <div class="pbn-page-title"><div><h2>Ringkasan Redaksi</h2><p>Kelola aktivitas portal berita dengan tampilan yang lebih terstruktur.</p></div></div>
               <div class="stat-row" id="stat-row"></div>
+              <div id="pbn-analytics" class="pbn-analytics" style="display:none;"></div>
               <div class="pbn-home-heading"><div><span class="pbn-kicker">INBOX REDAKSI</span><h2>Permintaan Masuk</h2><p>Semua kiriman dan permintaan dari warga ditampilkan langsung di halaman utama dashboard.</p></div></div>
               <div id="pbn-home-requests" class="pbn-home-requests"><div id="pbn-home-tips"></div><div id="pbn-home-loker"></div><div id="pbn-home-ads"></div></div>
               <div class="pbn-summary-cards" id="pbn-summary-cards"></div>
@@ -1359,5 +1361,6 @@ Poin ketiga"></textarea>
   <script src="js/firebase-init.js"></script>
   <script src="js/data.js"></script>
   <script src="js/admin.js"></script>
+  <script src="js/analytics.js"></script>
 </body>
 </html>
