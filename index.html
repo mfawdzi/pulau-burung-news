@@ -13,7 +13,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body class="pbn-loading">
+  
+  </script>
 
   <div class="utility-bar">
     <div class="wrap">
@@ -82,6 +84,22 @@
 
   <main>
     <div class="wrap">
+
+      <!-- Loading area isi berita: header, ticker & menu tetap terlihat -->
+      <div id="pbn-loader" role="status" aria-live="polite">
+        <div class="pbn-loader-box">
+          <div class="pbn-loader-spinner"></div>
+          <div class="pbn-loader-text">Memuat berita<span class="pbn-loader-dots"><i>.</i><i>.</i><i>.</i></span></div>
+        </div>
+      </div>
+      <script>
+        // Pengaman: kalau loading tidak hilang, tutup paksa setelah 10 detik
+        setTimeout(function () {
+          var l = document.getElementById('pbn-loader');
+          if (l) l.remove();
+          document.body.classList.remove('pbn-loading');
+        }, 10000);
+      </script>
 
       <div class="filter-banner" id="filter-banner" style="display:none;"></div>
 
