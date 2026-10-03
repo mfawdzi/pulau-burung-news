@@ -202,6 +202,43 @@ function pbnDeleteArticle(id) {
 function pbnIncrementViews(id) {
   db.collection('articles').doc(id).update({ views: firebase.firestore.FieldValue.increment(1) }).catch(e => console.error(e));
 }
+/* ---------- Statistik (dicatat ke koleksi "analytics") ---------- */
+function pbnVisitorId() {
+  try {
+    let v = localStorage.getItem('pbn_vid');
+    if (!v) { v = pbnNewId() + pbnNewId(); localStorage.setItem('pbn_vid', v); }
+    return v;
+  } catch (e) { return 'anon'; }
+}
+function pbnTrackEvent(type, article) {
+  try {
+    const d = new Date();
+    const p = n => String(n).padStart(2, '0');
+    const day = d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+    db.collection('analytics').add({
+      type: type,                                   // 'view' | 'share' | 'visit'
+      articleId: article ? article.id : null,
+      articleTitle: article ? String(article.title || '').slice(0, 250) : '',
+      category: article ? String(article.category || '') : '',
+      visitorId: pbnVisitorId(),
+      date: d.toISOString(),
+      day: day,
+      month: day.slice(0, 7),
+      year: d.getFullYear(),
+      hour: d.getHours()
+    }).catch(() => {});
+  } catch (e) {}
+}
+/* Pengunjung dihitung sekali per hari per browser */
+function pbnTrackVisit() {
+  try {
+    const d = new Date();
+    const today = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+    if (localStorage.getItem('pbn_last_visit') === today) return;
+    localStorage.setItem('pbn_last_visit', today);
+    pbnTrackEvent('visit', null);
+  } catch (e) {}
+}
 function pbnSetAsHero(id) {
   const batch = db.batch();
   PBN_CACHE.articles.forEach(a => batch.update(db.collection('articles').doc(a.id), { isHero: a.id === id }));
