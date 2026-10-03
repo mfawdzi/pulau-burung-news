@@ -24,6 +24,14 @@ document.addEventListener('pbn:data-changed', (e) => {
   renderNavProfileMini();
   if (e.detail && e.detail.name === 'shopeeAds') initShopeeWidget();
   if (e.detail && e.detail.name === 'marketWidget') syncMarketWidget();
+  // Perbarui daftar komentar otomatis saat data komentar masuk/berubah
+  if (e.detail && e.detail.name === 'comments' && window.PBN_OPEN_ARTICLE_ID) {
+    renderComments(window.PBN_OPEN_ARTICLE_ID);
+  }
+  // Perbarui tombol & jumlah suka saat data suka atau status login berubah
+  if (e.detail && (e.detail.name === 'likes' || e.detail.name === 'me') && window.PBN_OPEN_ARTICLE_ID) {
+    refreshLikeButton(window.PBN_OPEN_ARTICLE_ID);
+  }
 });
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1450,6 +1458,7 @@ function bindArticleActions(article) {
     });
   }
 
+  window.PBN_OPEN_ARTICLE_ID = article.id;
   renderComments(article.id);
 
   const commentForm = document.getElementById('comment-form-inline');
@@ -1470,6 +1479,16 @@ function bindArticleActions(article) {
       showToast('Komentar terkirim.');
     });
   }
+}
+
+function refreshLikeButton(articleId) {
+  const likeBtn = document.getElementById('like-btn');
+  if (!likeBtn) return;
+  const user = pbnCurrentUser();
+  const liked = user ? pbnHasLiked(articleId, user.username) : false;
+  likeBtn.classList.toggle('liked', liked);
+  const countEl = likeBtn.querySelector('.like-count');
+  if (countEl) countEl.textContent = pbnGetLikeCount(articleId);
 }
 
 function renderComments(articleId) {
