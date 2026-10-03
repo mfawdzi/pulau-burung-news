@@ -877,6 +877,23 @@ function bindNav() {
 /* Memindahkan menu yang tidak muat dalam satu baris ke dropdown "Lainnya",
    supaya menu tidak pernah turun ke baris kedua. */
 function pbnUpdateNavOverflow() {
+  // PERBAIKAN: cegah halaman loncat ke atas saat menu diukur ulang (di HP)
+  const navWrap = document.querySelector('nav.primary .wrap');
+  const savedY = window.pageYOffset || document.documentElement.scrollTop || 0;
+  const savedX = window.pageXOffset || document.documentElement.scrollLeft || 0;
+  const prevOverflow = navWrap ? navWrap.style.overflow : '';
+  if (navWrap) navWrap.style.overflow = 'hidden';
+  try {
+    pbnUpdateNavOverflowInner();
+  } finally {
+    if (navWrap) navWrap.style.overflow = prevOverflow;
+    if ((window.pageYOffset || 0) !== savedY) {
+      window.scrollTo({ top: savedY, left: savedX, behavior: 'instant' });
+    }
+  }
+}
+
+function pbnUpdateNavOverflowInner() {
   const wrap = document.querySelector('nav.primary .wrap');
   const moreWrap = document.getElementById('nav-more');
   const moreBtn = document.getElementById('nav-more-btn');
