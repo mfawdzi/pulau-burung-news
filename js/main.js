@@ -38,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderDate();
   renderAll();
   bindNav();
+  pbnSyncTicker();
   bindStickyTicker();
   bindModal();
   bindSearch();
@@ -127,8 +128,30 @@ function renderTicker(berita) {
   const items = berita.filter(a => a.ticker).slice(0, 6);
   const source = items.length ? items : berita.slice(0, 3);
   const html = source.map(a => `<span>${pbnEscapeHtml(a.title)}</span>`).join('');
+  // Jangan sentuh DOM kalau isinya sama, supaya ticker tidak ikut terganggu
+  if (track.dataset.html === html) return;
+  track.dataset.html = html;
   track.innerHTML = html;
   if (trackSticky) trackSticky.innerHTML = html;
+}
+
+/* Satu "jam" bersama untuk ticker asli & ticker sticky, supaya posisi
+   teks selalu menyambung (tidak mulai dari awal lagi). Waktu mulai
+   disimpan di sessionStorage, jadi tetap menyambung walau halaman dimuat ulang. */
+function pbnSyncTicker(targetIds) {
+  let t0 = 0;
+  try { t0 = Number(sessionStorage.getItem('pbn_ticker_t0')) || 0; } catch (e) {}
+  if (!t0) {
+    t0 = Date.now();
+    try { sessionStorage.setItem('pbn_ticker_t0', String(t0)); } catch (e) {}
+  }
+  (targetIds || ['ticker-move', 'ticker-move-sticky']).forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const dur = parseFloat(getComputedStyle(el).animationDuration) || 28;
+    const elapsed = ((Date.now() - t0) / 1000) % dur;
+    el.style.animationDelay = '-' + elapsed.toFixed(3) + 's';
+  });
 }
 
 /* ---------- Hero ---------- */
@@ -991,6 +1014,8 @@ function bindStickyTicker() {
   const nav = document.querySelector('nav.primary');
   if (!clone || !nav) return;
 
+  let wasStuck = false;
+
   function update() {
     const navRect = nav.getBoundingClientRect();
     clone.style.top = navRect.height + 'px';
@@ -999,6 +1024,9 @@ function bindStickyTicker() {
     // pas 0 (benar-benar menyentuh puncak layar), bukan sekadar
     // ticker asli sudah lewat di belakangnya.
     const navStuck = navRect.top <= 0;
+    // Saat ticker sticky baru muncul, samakan posisinya dengan ticker asli
+    if (navStuck && !wasStuck) pbnSyncTicker(['ticker-move-sticky']);
+    wasStuck = navStuck;
     clone.style.display = navStuck ? 'block' : 'none';
   }
 
