@@ -1482,8 +1482,23 @@ function renderComments(articleId) {
 function openArticleFromHash() {
   const slug = decodeURIComponent((window.location.hash || '').replace(/^#/, ''));
   if (!slug) return;
-  const article = PBN_CACHE.articles.find(a => pbnSlugify(a.title) === slug);
-  if (article) openArticle(article.id);
+
+  const tryOpen = () => {
+    const article = PBN_CACHE.articles.find(a => pbnSlugify(a.title) === slug);
+    if (article) { openArticle(article.id); return true; }
+    return false;
+  };
+
+  if (tryOpen()) return;
+
+  // Data berita dari Firestore belum sampai saat halaman baru di-reload —
+  // tunggu sampai datang (event 'pbn:data-changed'), baru coba buka lagi.
+  const onChange = (e) => {
+    if (e.detail && e.detail.name === 'articles' && tryOpen()) {
+      document.removeEventListener('pbn:data-changed', onChange);
+    }
+  };
+  document.addEventListener('pbn:data-changed', onChange);
 }
 
 /* ---------- Toast ---------- */
