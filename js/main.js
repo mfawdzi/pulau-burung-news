@@ -1965,6 +1965,7 @@ function initShopeeWidget() {
   }
 
   widget.dataset.started = '1';
+  bindShopeeDrag(widget);
 
   // Tampilan pertama muncul 3 detik setelah halaman dibuka
   setTimeout(() => showShopeeAd(0), 3000);
@@ -1984,6 +1985,104 @@ function initShopeeWidget() {
       scheduleShopeeRotate(30 * 1000);
     });
   }
+}
+
+/* Iklan Shopee bisa digeser pengunjung (tarik dengan jari / mouse).
+   - Posisi diingat selama pengunjung masih membuka situs (sessionStorage),
+     jadi tidak balik ke pojok tiap pindah halaman.
+   - Menggeser TIDAK membuka link Shopee; hanya tap/klik biasa yang membuka. */
+function bindShopeeDrag(widget) {
+  if (widget.dataset.dragBound) return;
+  widget.dataset.dragBound = '1';
+
+  const STORE_KEY = 'pbn_shopee_pos_v1';
+  const MARGIN = 6;      // jarak minimal dari tepi layar
+  const THRESHOLD = 6;   // geser kurang dari ini dianggap tap biasa
+
+  widget.style.touchAction = 'none';   // supaya geser jari tidak men-scroll halaman
+  widget.style.cursor = 'grab';
+  widget.style.userSelect = 'none';
+  widget.style.webkitUserSelect = 'none';
+  widget.style.zIndex = '10000';       // sejajar bar hitam paling atas, supaya tidak tertutup saat digeser ke atas
+
+  function applyPos(left, top) {
+    const w = widget.offsetWidth || (window.innerWidth <= 480 ? 130 : 190);
+    const h = widget.offsetHeight || w;
+    const maxL = Math.max(MARGIN, window.innerWidth - w - MARGIN);
+    const maxT = Math.max(MARGIN, window.innerHeight - h - MARGIN);
+    const l = Math.min(Math.max(MARGIN, left), maxL);
+    const t = Math.min(Math.max(MARGIN, top), maxT);
+    widget.style.left = l + 'px';
+    widget.style.top = t + 'px';
+    widget.style.right = 'auto';
+    widget.style.bottom = 'auto';
+    return { left: l, top: t };
+  }
+
+  // Pulihkan posisi terakhir (kalau pengunjung pernah menggesernya)
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(STORE_KEY) || 'null');
+    if (saved && isFinite(saved.left) && isFinite(saved.top)) applyPos(saved.left, saved.top);
+  } catch (_) {}
+
+  let moved = false, pid = null;
+  let startX = 0, startY = 0, startLeft = 0, startTop = 0;
+
+  function onMove(e) {
+    if (e.pointerId !== pid) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    if (!moved) {
+      if (Math.abs(dx) < THRESHOLD && Math.abs(dy) < THRESHOLD) return;
+      moved = true;
+      widget.style.cursor = 'grabbing';
+    }
+    e.preventDefault();
+    applyPos(startLeft + dx, startTop + dy);
+  }
+
+  function onEnd(e) {
+    if (e.pointerId !== pid) return;
+    pid = null;
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', onEnd);
+    document.removeEventListener('pointercancel', onEnd);
+    widget.style.cursor = 'grab';
+    if (moved) {
+      const r = widget.getBoundingClientRect();
+      try { sessionStorage.setItem(STORE_KEY, JSON.stringify({ left: r.left, top: r.top })); } catch (_) {}
+    }
+  }
+
+  widget.addEventListener('pointerdown', (e) => {
+    if (e.button !== undefined && e.button !== 0) return;
+    if (e.target.closest('.shopee-widget-close')) return; // tombol × tetap berfungsi normal
+    const r = widget.getBoundingClientRect();
+    startX = e.clientX; startY = e.clientY;
+    startLeft = r.left; startTop = r.top;
+    moved = false; pid = e.pointerId;
+    document.addEventListener('pointermove', onMove, { passive: false });
+    document.addEventListener('pointerup', onEnd);
+    document.addEventListener('pointercancel', onEnd);
+  });
+
+  // Setelah menggeser, jangan buka link Shopee
+  widget.addEventListener('click', (e) => {
+    if (moved) {
+      e.preventDefault();
+      e.stopPropagation();
+      moved = false;
+    }
+  }, true);
+
+  // Cegah "drag gambar/link" bawaan browser (desktop)
+  widget.addEventListener('dragstart', (e) => e.preventDefault());
+
+  // Kalau ukuran layar berubah (putar HP, dll), jaga widget tetap di dalam layar
+  window.addEventListener('resize', () => {
+    if (!widget.style.left) return;
+    applyPos(parseFloat(widget.style.left), parseFloat(widget.style.top));
+  });
 }
 
 function showShopeeAd(index) {
