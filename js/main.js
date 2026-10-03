@@ -2290,15 +2290,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 window.addEventListener('popstate', () => {
-  const q = new URLSearchParams(window.location.search).get('cari') || '';
-  if (q !== PBN_SEARCH_QUERY) pbnApplySearch(q, false);
-
-  const hash = window.location.hash || '';
-  if (hash.startsWith('#kategori-')) {
-    openCategoryFromHash();
-  } else if (hash) {
-    openArticleFromHash();
-  } else if (PBN_ACTIVE_CATEGORY) {
-    pbnApplyCategory('', false);
-  }
+  // Tombol back/forward browser, termasuk swipe back di HP = reload penuh
+  // ke halaman sebelumnya, bukan sekadar ganti tampilan lewat JS.
+  window.location.reload();
 });
