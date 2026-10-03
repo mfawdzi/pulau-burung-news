@@ -35,6 +35,7 @@ document.addEventListener('pbn:data-changed', (e) => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+  pbnTrackVisit();
   renderDate();
   renderAll();
   bindNav();
@@ -1051,6 +1052,7 @@ function openArticle(id) {
   const article = pbnGetArticleById(id);
   if (!article) return;
   pbnIncrementViews(id);
+  pbnTrackEvent('view', article);
   triggerShopeeAdOnClick();
 
   const currentUser = pbnCurrentUser();
@@ -1474,6 +1476,7 @@ function bindArticleActions(article) {
   const shareBtn = document.getElementById('share-btn');
   if (shareBtn) {
     shareBtn.addEventListener('click', () => {
+      pbnTrackEvent('share', article);
       const url = window.location.href;
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(url).then(
