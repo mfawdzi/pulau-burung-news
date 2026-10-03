@@ -2950,6 +2950,8 @@ nav.primary a.nav-profile-mini-icon:hover{
 
 /* ===== HASIL PENCARIAN ===== */
 main.is-searching .wrap > *:not(#search-results){ display:none !important; }
+main.is-article-view .wrap > *:not(#article-page){ display:none !important; }
+#article-page{ margin:32px auto 56px; }
 
 .search-results{ padding:32px 0 56px; }
 .sr-back{
