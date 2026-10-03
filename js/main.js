@@ -811,7 +811,7 @@ function bindClickable(container) {
     el.addEventListener('click', () => {
       const article = pbnGetArticleById(el.getAttribute('data-id'));
       if (!article) return;
-      history.replaceState(null, '', window.location.pathname + '#' + pbnSlugify(article.title));
+      history.pushState(null, '', window.location.pathname + '#' + pbnSlugify(article.title));
       window.location.reload();
     });
   });
@@ -1034,7 +1034,6 @@ function openArticle(id) {
   const likeCount = pbnGetLikeCount(id);
 
   box.innerHTML = `
-    <a href="#" class="sr-back" id="article-page-back">← Kembali ke Beranda</a>
     <span class="tag ${pbnCategoryTagClass(article.category)}">${pbnEscapeHtml(article.category)}</span>
     <h1>${pbnEscapeHtml(article.title)}</h1>
     <div class="byline">
@@ -1090,12 +1089,6 @@ function openArticle(id) {
         : `<p class="comment-login-note"><a href="admin">Masuk atau daftar</a> untuk menulis komentar.</p>`}
     </div>
   `;
-  document.getElementById('article-page-back').addEventListener('click', (e) => {
-    e.preventDefault();
-    window.location.hash = '';
-    window.location.reload();
-  });
-  history.pushState(null, '', '#' + pbnSlugify(article.title));
 
   const readmoreBtn = document.getElementById('modal-readmore-btn');
   if (readmoreBtn) {
