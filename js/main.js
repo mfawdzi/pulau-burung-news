@@ -950,7 +950,12 @@ function bindNavProfileScroll() {
 
   el.addEventListener('transitionend', (e) => {
     if (e.propertyName !== 'width') return;
-    if (typeof pbnUpdateNavOverflow === 'function') pbnUpdateNavOverflow();
+    // Tunda sedikit, supaya tidak menyusun ulang menu TEPAT saat browser
+    // sedang di tengah-tengah proses scroll/sticky — itu yang diduga
+    // memicu halaman melompat balik ke atas di sebagian HP.
+    setTimeout(() => {
+      if (typeof pbnUpdateNavOverflow === 'function') pbnUpdateNavOverflow();
+    }, 50);
   });
 }
 
