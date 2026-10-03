@@ -996,8 +996,9 @@ function openArticle(id) {
   triggerShopeeAdOnClick();
 
   const currentUser = pbnCurrentUser();
-  const overlay = document.getElementById('modal-overlay');
-  const box = document.getElementById('modal-content');
+  const box = document.getElementById('article-page');
+  document.querySelector('main').classList.add('is-article-view');
+  box.style.display = 'block';
 
   const allParagraphs = (article.content || article.excerpt || '')
     .split('\n')
@@ -1011,7 +1012,7 @@ function openArticle(id) {
   const likeCount = pbnGetLikeCount(id);
 
   box.innerHTML = `
-    <button class="modal-close" id="modal-close">×</button>
+    <a href="#" class="sr-back" id="article-page-back">← Kembali ke Beranda</a>
     <span class="tag ${pbnCategoryTagClass(article.category)}">${pbnEscapeHtml(article.category)}</span>
     <h1>${pbnEscapeHtml(article.title)}</h1>
     <div class="byline">
@@ -1067,9 +1068,12 @@ function openArticle(id) {
         : `<p class="comment-login-note"><a href="admin">Masuk atau daftar</a> untuk menulis komentar.</p>`}
     </div>
   `;
-  document.getElementById('modal-close').addEventListener('click', closeArticle);
-  overlay.classList.add('open');
-  document.body.style.overflow = 'hidden';
+  document.getElementById('article-page-back').addEventListener('click', (e) => {
+    e.preventDefault();
+    window.location.hash = '';
+    window.location.reload();
+  });
+  window.scrollTo(0, 0);
   history.pushState(null, '', '#' + pbnSlugify(article.title));
 
   const readmoreBtn = document.getElementById('modal-readmore-btn');
