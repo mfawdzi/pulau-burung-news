@@ -1073,7 +1073,6 @@ function openArticle(id) {
     window.location.hash = '';
     window.location.reload();
   });
-  window.scrollTo(0, 0);
   history.pushState(null, '', '#' + pbnSlugify(article.title));
 
   const readmoreBtn = document.getElementById('modal-readmore-btn');
