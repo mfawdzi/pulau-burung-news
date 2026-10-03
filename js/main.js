@@ -808,7 +808,12 @@ function renderOneAdSlot(elId, ad, placeholderTitle, placeholderSub) {
 /* ---------- Klik untuk buka modal ---------- */
 function bindClickable(container) {
   container.querySelectorAll('[data-id]').forEach(el => {
-    el.addEventListener('click', () => openArticle(el.getAttribute('data-id')));
+    el.addEventListener('click', () => {
+      const article = pbnGetArticleById(el.getAttribute('data-id'));
+      if (!article) return;
+      window.location.hash = pbnSlugify(article.title);
+      window.location.reload();
+    });
   });
 }
 
