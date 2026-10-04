@@ -1185,8 +1185,19 @@ function openAdModal(ad) {
   // supaya tombol kontrol pemutarnya tidak terpotong.
   box.style.maxWidth = ad.videoUrl ? '640px' : '480px';
   let adVideoHtml = ad.videoUrl ? pbnVideoEmbedHtml(ad.videoUrl) : '';
-  if (adVideoHtml && /drive\.google\.com/.test(ad.videoUrl)) {
-    adVideoHtml = adVideoHtml.replace('class="modal-video"', 'class="modal-video" style="width:100%;box-sizing:border-box;aspect-ratio:16/10;min-height:230px;"');
+   if (adVideoHtml) {
+    // Bingkai mengikuti rasio video (standar 16:9) dan selalu selebar kotak iklan.
+    // Video vertikal/lainnya: tambahkan di akhir link, mis. ...#rasio=9:16 atau ...#rasio=4:3
+    // Pemutar Google Drive punya bilah atas + kontrol sendiri, jadi diberi tinggi tambahan (px).
+    const PBN_DRIVE_EXTRA_HEIGHT = 100; // naikkan bila kontrol masih terpotong, turunkan bila area hitam terlalu banyak
+    const rm = ad.videoUrl.match(/[#&]rasio=(\d+)[x:](\d+)/i);
+    const pct = (rm && Number(rm[1]) > 0 && Number(rm[2]) > 0) ? (Number(rm[2]) / Number(rm[1]) * 100) : 56.25;
+    const extra = /drive\.google\.com/.test(ad.videoUrl) ? PBN_DRIVE_EXTRA_HEIGHT : 0;
+    const fill = 'style="position:absolute;top:0;left:0;width:100%;height:100%;" ';
+    adVideoHtml = adVideoHtml
+      .replace('class="modal-video"', 'class="modal-video" style="position:relative;width:100%;height:0;box-sizing:border-box;aspect-ratio:auto;padding-bottom:calc(' + pct.toFixed(2) + '% + ' + extra + 'px);"')
+      .replace('<iframe ', '<iframe ' + fill)
+      .replace('<video ', '<video ' + fill);
   }
 
   box.innerHTML = `
