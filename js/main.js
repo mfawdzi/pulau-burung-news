@@ -1185,7 +1185,8 @@ function openAdModal(ad) {
     <button class="modal-close" id="ad-modal-close">×</button>
     <span class="tag ${pbnCategoryTagClass(ad.category)}">IKLAN</span>
     <h1 style="margin-top:12px;">${pbnEscapeHtml(ad.title)}</h1>
-    <div class="modal-figure"${pbnImageStyle(ad)}></div>
+        <div class="modal-figure"${pbnImageStyle(ad)}></div>
+    ${ad.videoUrl ? `<div style="margin-top:16px;"><div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.05em;margin-bottom:8px;">▶ TONTON CONTOH / EPISODE PERCOBAAN</div>${pbnVideoEmbedHtml(ad.videoUrl)}</div>` : ''}
     <div class="modal-body"><p>${pbnEscapeHtml(desc)}</p></div>
     ${destinationLink ? `
       <a href="${pbnEscapeHtml(destinationLink)}" target="_blank" rel="noopener" class="action-btn"
