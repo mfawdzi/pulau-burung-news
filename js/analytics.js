@@ -277,7 +277,7 @@
       }
       if (e.type === 'view') r.views++; else r.shares++;
     });
-    const rows = [...map.values()].sort((a, b) => (b.views - a.views) || (b.shares - a.shares)).slice(0, 10);
+    const rows = [...map.values()].sort((a, b) => (b.views - a.views) || (b.shares - a.shares)).slice(0, 5);
     if (!rows.length) return '<p class="pbn-an-empty">Belum ada konten yang dibaca pada periode ini.</p>';
     const top = Math.max(1, rows[0].views);
     return rows.map((r, i) => `
