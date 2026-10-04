@@ -374,7 +374,18 @@ function pbnUpdateCommentStatus(id, status) {
   db.collection('comments').doc(id).update({ status }).catch(e => console.error(e));
 }
 function pbnDeleteComment(id) {
-  db.collection('comments').doc(id).delete().catch(e => console.error(e));
+  db.collection('comments').doc(id).delete().catch(e => {
+    console.error(e);
+    if (typeof showToast === 'function') showToast('Gagal menghapus komentar.', true);
+  });
+}
+function pbnEditComment(id, text) {
+  db.collection('comments').doc(id).update({
+    text: text, edited: true, editedAt: new Date().toISOString()
+  }).catch(e => {
+    console.error(e);
+    if (typeof showToast === 'function') showToast('Gagal menyimpan perubahan komentar.', true);
+  });
 }
 
 /* ---------- Users / Auth (Firebase Authentication) ----------
