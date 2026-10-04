@@ -126,11 +126,137 @@ async function pbnSeedIfEmpty() {
   }
 }
 
-/* Data publik: boleh dibaca siapa saja (sesuai firestore.rules) */
+/* =========================================================
+   MODE HEMAT KUOTA
+   - Halaman publik : memuat 20 artikel terbaru (sekali ambil, bukan
+                      pantau terus-menerus), komentar hanya untuk artikel
+                      yang sedang dibuka, jumlah suka = angka di artikel.
+   - Halaman admin  : memantau 200 artikel & 200 komentar terbaru saja.
+   ========================================================= */
+const PBN_PUBLIC_LIMIT = 20;
+const PBN_ADMIN_LIMIT = 200;
+const PBN_IS_ADMIN_PAGE = !!window.PBN_ADMIN || /admin(\.html)?\/?$/i.test(location.pathname);
+const PBN_NEEDS_ARTICLES = !/tentang/i.test(location.pathname);
+
+const PBN_ART_MAP = new Map();   // id -> artikel (gabungan semua hasil kueri halaman publik)
+const PBN_FEEDS = {};            // kursor halaman per "aliran": { last, done }
+let PBN_INDEX_OK = true;         // false = indeks gabungan Firestore belum dibuat -> pakai cara cadangan
+
+function pbnMergeArticles(snap) {
+  snap.docs.forEach(d => PBN_ART_MAP.set(d.id, { id: d.id, ...d.data() }));
+  PBN_CACHE.articles = Array.from(PBN_ART_MAP.values());
+}
+
+async function pbnRunArticleQuery(q) {
+  try {
+    const snap = await q.get();
+    pbnMergeArticles(snap);
+    return snap;
+  } catch (err) {
+    console.error('[Firestore] gagal memuat artikel', err);
+    return null;
+  }
+}
+
+/* Ambil satu halaman artikel (terbaru dulu).
+   key     : nama aliran, mis. 'all' atau 'cat:Peristiwa'
+   filters : mis. [['type','==','berita'],['status','==','published']]
+   Butuh indeks gabungan; kalau belum ada, otomatis pakai cara cadangan (ambil terbaru lalu saring di browser). */
+async function pbnLoadFeed(key, filters, limit) {
+  const feed = PBN_FEEDS[key] || (PBN_FEEDS[key] = { last: null, done: false });
+  if (feed.done) return 0;
+  const build = (useFilters) => {
+    let q = db.collection('articles');
+    if (useFilters) filters.forEach(f => { q = q.where(f[0], f[1], f[2]); });
+    q = q.orderBy('date', 'desc');
+    if (feed.last) q = q.startAfter(feed.last);
+    return q.limit(useFilters ? limit : limit * 2);
+  };
+  let snap;
+  try {
+    snap = await build(PBN_INDEX_OK).get();
+  } catch (err) {
+    if (err && err.code === 'failed-precondition' && PBN_INDEX_OK) {
+      console.warn('[Firestore] Indeks gabungan belum dibuat. Buka link di pesan error berikut untuk membuatnya:', err.message);
+      PBN_INDEX_OK = false;
+      feed.last = null;
+      try { snap = await build(false).get(); } catch (e2) { console.error(e2); return 0; }
+    } else {
+      console.error('[Firestore] gagal memuat artikel (' + key + ')', err);
+      return 0;
+    }
+  }
+  pbnMergeArticles(snap);
+  if (snap.docs.length) feed.last = snap.docs[snap.docs.length - 1];
+  if (snap.docs.length < (PBN_INDEX_OK ? limit : limit * 2)) feed.done = true;
+  return snap.docs.length;
+}
+
+function pbnHasMoreArticles(category) {
+  const f = PBN_FEEDS[category ? 'cat:' + category : 'all'];
+  return !f || !f.done;
+}
+
+/* Tombol "Muat lebih lama": ambil 20 artikel berikutnya (opsional per rubrik) */
+async function pbnLoadMoreArticles(category) {
+  const n = category
+    ? await pbnLoadFeed('cat:' + category, [['category', '==', category], ['status', '==', 'published']], PBN_PUBLIC_LIMIT)
+    : await pbnLoadFeed('all', [['type', '==', 'berita'], ['status', '==', 'published']], PBN_PUBLIC_LIMIT);
+  pbnNotifyChange('articles');
+  return n;
+}
+
+/* Cari satu artikel lewat slug judul (untuk link yang dibagikan ke berita lama) */
+async function pbnFetchArticleBySlug(slug) {
+  const hit = Array.from(PBN_ART_MAP.values()).find(a => pbnSlugify(a.title) === slug);
+  if (hit) return hit;
+  // 1) artikel baru punya field "slug" -> 1 pembacaan saja
+  const snap = await pbnRunArticleQuery(db.collection('articles').where('slug', '==', slug).limit(1));
+  if (snap && snap.docs.length) { pbnNotifyChange('articles'); return PBN_ART_MAP.get(snap.docs[0].id); }
+  // 2) artikel lama (belum punya slug) -> telusuri halaman demi halaman, maksimal 10 halaman
+  for (let i = 0; i < 10 && pbnHasMoreArticles(null); i++) {
+    await pbnLoadFeed('all', [['type', '==', 'berita'], ['status', '==', 'published']], PBN_PUBLIC_LIMIT);
+    const found = Array.from(PBN_ART_MAP.values()).find(a => pbnSlugify(a.title) === slug);
+    if (found) { pbnNotifyChange('articles'); return found; }
+  }
+  return null;
+}
+
+async function pbnLoadPublicArticles() {
+  const col = db.collection('articles');
+  // Rubrik yang sedang dibuka lewat link (#kategori-xxx) dimuat penuh 20; bagian beranda cukup beberapa
+  const hashCat = (location.hash.match(/^#kategori-(.+)$/) || [])[1];
+  const activeCat = hashCat ? PBN_CATEGORIES.find(c => pbnSlugify(c) === hashCat) : null;
+  const catLimits = { 'Peristiwa': 3, 'Info Loker': 6 };
+  if (activeCat) catLimits[activeCat] = PBN_PUBLIC_LIMIT;
+
+  const jobs = [
+    pbnLoadFeed('all', [['type', '==', 'berita'], ['status', '==', 'published']], PBN_PUBLIC_LIMIT),
+    pbnRunArticleQuery(col.where('isHero', '==', true).limit(3)),
+    pbnRunArticleQuery(col.where('ticker', '==', true).limit(6)),
+    pbnRunArticleQuery(col.where('type', '==', 'iklan').limit(10)),
+    pbnRunArticleQuery(col.where('type', '==', 'papan').limit(10)),
+    pbnRunArticleQuery(col.orderBy('views', 'desc').limit(5))          // untuk "Terpopuler"
+  ];
+  Object.keys(catLimits).forEach(cat => {
+    jobs.push(pbnLoadFeed('cat:' + cat, [['category', '==', cat], ['status', '==', 'published']], catLimits[cat]));
+  });
+  await Promise.all(jobs);
+  PBN_CACHE.ready.articles = true;
+  pbnNotifyChange('articles');
+}
+
+/* Data publik */
 function pbnInit() {
-  pbnSubscribeCollection('articles', 'articles');
-  pbnSubscribeCollection('comments', 'comments');
-  pbnSubscribeCollection('likes', 'likes');
+  if (PBN_IS_ADMIN_PAGE) {
+    PBN_CACHE.articlesTruncated = true;
+    pbnSubscribeCollection('articles', 'articles', db.collection('articles').orderBy('date', 'desc').limit(PBN_ADMIN_LIMIT));
+    pbnSubscribeCollection('comments', 'comments', db.collection('comments').orderBy('date', 'desc').limit(PBN_ADMIN_LIMIT));
+  } else if (PBN_NEEDS_ARTICLES) {
+    pbnLoadPublicArticles();
+  } else {
+    PBN_CACHE.ready.articles = true;
+  }
   pbnSubscribeCollection('boardCards', 'boardCards');
   pbnSubscribeDoc('settings', 'marketWidget', 'marketWidget', PBN_DEFAULT_MARKET_WIDGET);
   pbnSubscribeDoc('settings', 'shopeeAds', 'shopeeAds', PBN_DEFAULT_SHOPEE_ADS);
@@ -606,6 +732,9 @@ function pbnReadFileAsDataURL(file, maxBytes) {
 
 function pbnVideoEmbedHtml(url) {
   if (!url) return '';
+  // Google Drive: file harus dibagikan "Siapa saja yang memiliki link"
+  const gd = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:[^#]*&)?id=)([\w-]{10,})/);
+  if (gd) return `<div class="modal-video"><iframe src="https://drive.google.com/file/d/${gd[1]}/preview" title="Video percobaan" allow="autoplay; fullscreen" allowfullscreen loading="lazy"></iframe></div>`;
   const yt = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{11})/);
   if (yt) return `<div class="modal-video"><iframe src="https://www.youtube.com/embed/${yt[1]}" title="Video berita" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe></div>`;
   const fb = url.match(/facebook\.com|fb\.watch/);
