@@ -1186,7 +1186,7 @@ function openAdModal(ad) {
   box.style.maxWidth = ad.videoUrl ? '640px' : '480px';
   let adVideoHtml = ad.videoUrl ? pbnVideoEmbedHtml(ad.videoUrl) : '';
   if (adVideoHtml && /drive\.google\.com/.test(ad.videoUrl)) {
-    adVideoHtml = adVideoHtml.replace('class="modal-video"', 'class="modal-video" style="aspect-ratio:16/10;min-height:230px;"');
+    adVideoHtml = adVideoHtml.replace('class="modal-video"', 'class="modal-video" style="width:100%;box-sizing:border-box;aspect-ratio:16/10;min-height:230px;"');
   }
 
   box.innerHTML = `
