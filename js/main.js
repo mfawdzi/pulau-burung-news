@@ -19,9 +19,15 @@ if ('scrollRestoration' in history) {
 window.scrollTo(0, 0);
 
 document.addEventListener('pbn:data-changed', (e) => {
-  renderAll();
-  renderAuthArea();
-  renderNavProfileMini();
+  const evName = e.detail && e.detail.name;
+  // Data komentar/suka tidak mempengaruhi daftar berita -> tidak perlu menggambar ulang seluruh beranda
+  if (evName !== 'comments' && evName !== 'likes') {
+    renderAll();
+    renderAuthArea();
+    renderNavProfileMini();
+  }
+  // Pengguna baru login / berganti akun: cek apakah ia sudah menyukai berita yang sedang dibuka
+  if (evName === 'me' && window.PBN_OPEN_ARTICLE_ID) pbnLoadMyLike(window.PBN_OPEN_ARTICLE_ID);
   if (e.detail && e.detail.name === 'shopeeAds') initShopeeWidget();
   if (e.detail && e.detail.name === 'marketWidget') syncMarketWidget();
   // Perbarui daftar komentar otomatis saat data komentar masuk/berubah
@@ -1150,6 +1156,8 @@ ${pbnShowAuthor(article) ? pbnBylineHtml(article) : ''}<span>${pbnFormatDate(art
 }
 
 function closeArticle() {
+  pbnStopWatchComments();
+  window.PBN_OPEN_ARTICLE_ID = null;
   document.getElementById('modal-overlay').classList.remove('open');
   document.body.style.overflow = '';
   history.pushState(null, '', window.location.pathname + window.location.search);
@@ -1185,7 +1193,7 @@ function openAdModal(ad) {
   // supaya tombol kontrol pemutarnya tidak terpotong.
   box.style.maxWidth = ad.videoUrl ? '640px' : '480px';
   let adVideoHtml = ad.videoUrl ? pbnVideoEmbedHtml(ad.videoUrl) : '';
-   if (adVideoHtml) {
+  if (adVideoHtml) {
     // Bingkai mengikuti rasio video (standar 16:9) dan selalu selebar kotak iklan.
     // Video vertikal/lainnya: tambahkan di akhir link, mis. ...#rasio=9:16 atau ...#rasio=4:3
     // Pemutar Google Drive punya bilah atas + kontrol sendiri, jadi diberi tinggi tambahan (px).
@@ -1205,7 +1213,7 @@ function openAdModal(ad) {
     <span class="tag ${pbnCategoryTagClass(ad.category)}">IKLAN</span>
     <h1 style="margin-top:12px;">${pbnEscapeHtml(ad.title)}</h1>
         <div class="modal-figure"${pbnImageStyle(ad)}></div>
-    ${adVideoHtml ? `<div style="margin-top:16px;"><div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.05em;margin-bottom:8px;">▶ TONTON VIDEO</div>${adVideoHtml}</div>` : ''}
+    ${adVideoHtml ? `<div style="margin-top:16px;"><div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.05em;margin-bottom:8px;">▶ TONTON CONTOH / EPISODE PERCOBAAN</div>${adVideoHtml}</div>` : ''}
     <div class="modal-body"><p>${pbnEscapeHtml(desc)}</p></div>
     ${destinationLink ? `
       <a href="${pbnEscapeHtml(destinationLink)}" target="_blank" rel="noopener" class="action-btn"
@@ -1516,6 +1524,16 @@ function bindArticleActions(article) {
   }
 
   window.PBN_OPEN_ARTICLE_ID = article.id;
+  pbnWatchComments(article.id);   // komentar dimuat hanya untuk artikel ini
+  pbnLoadMyLike(article.id);      // 1 pembacaan: apakah pengguna ini sudah menyukai
+  // Gambar besar diambil hanya saat berita dibuka (daftar & beranda memakai gambar mini)
+  if (article.hasFull) {
+    pbnLoadFullImage(article.id).then(url => {
+      if (!url || window.PBN_OPEN_ARTICLE_ID !== article.id) return;
+      const fig = document.querySelector('#article-page .modal-figure');
+      if (fig) fig.style.backgroundImage = "url('" + pbnSafeUrl(url) + "')";
+    });
+  }
   renderComments(article.id);
 
   const commentForm = document.getElementById('comment-form-inline');
