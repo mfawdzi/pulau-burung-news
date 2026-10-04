@@ -176,7 +176,7 @@ function renderHero(list) {
     <span class="tag ${pbnCategoryTagClass(hero.category)}">${pbnEscapeHtml(hero.category)}</span>
     <h1 data-id="${hero.id}" style="margin-top:12px;">${pbnEscapeHtml(hero.title)}</h1>
     <div class="byline">
-      ${pbnShowAuthor(hero) ? `<span>Oleh ${pbnEscapeHtml(hero.author)}</span><span class="dot">·</span>` : ''}<span>${pbnFormatDate(hero.date)}</span><span class="dot">·</span><span>${pbnEscapeHtml(hero.village || '')}</span>
+${pbnShowAuthor(hero) ? pbnBylineHtml(hero) : ''}<span>${pbnFormatDate(hero.date)}</span><span class="dot">·</span><span>${pbnEscapeHtml(hero.village || '')}</span>
     </div>
     <div class="ad-slot ad-small" id="ad-slot-hero" style="margin:16px 0;"></div>
     <p class="dek">${pbnEscapeHtml(hero.excerpt)}</p>
@@ -214,7 +214,7 @@ function renderTerbaru(list) {
       <div>
         <span class="tag ${pbnCategoryTagClass(a.category)}">${pbnEscapeHtml(a.category)}</span>
         <h3>${pbnEscapeHtml(a.title)}</h3>
-        <div class="meta">${pbnRelativeTime(a.date)}${pbnShowAuthor(a) ? ' · ' + pbnEscapeHtml(a.author) : ''}</div>
+        <div class="meta">${pbnRelativeTime(a.date)}${pbnShowAuthor(a) ? ' · ' + pbnEscapeHtml(pbnByline(a)) : ''}</div>
       </div>
     </div>
   `).join('') + (sorted.length > 5 ? `
@@ -1075,7 +1075,7 @@ function openArticle(id) {
     <span class="tag ${pbnCategoryTagClass(article.category)}">${pbnEscapeHtml(article.category)}</span>
     <h1>${pbnEscapeHtml(article.title)}</h1>
     <div class="byline">
-      ${pbnShowAuthor(article) ? `<span>Oleh ${pbnEscapeHtml(article.author)}</span><span class="dot">·</span>` : ''}<span>${pbnFormatDate(article.date)}</span><span class="dot">·</span><span>${pbnEscapeHtml(article.village || '')}</span>
+${pbnShowAuthor(article) ? pbnBylineHtml(article) : ''}<span>${pbnFormatDate(article.date)}</span><span class="dot">·</span><span>${pbnEscapeHtml(article.village || '')}</span>
     </div>
     <div class="ad-slot ad-small" id="ad-slot-modal" style="margin:16px 0;"></div>
     <div class="modal-figure"${pbnImageStyle(article)}></div>
@@ -2343,17 +2343,30 @@ function syncMarketWidget() {
 
 /* Info Loker & Iklan buatan admin: nama pengunggah tidak ditampilkan di halaman publik */
 /* Nama penulis + keterangan peran: kiriman warga "(Kontributor)", redaksi "(Reporter/Admin/Super Admin)" */
+const PBN_ROLE_TAG = { superadmin: 'Reporter', admin: 'Reporter', reporter: 'Reporter' };
+
+/* Nama redaksi yang menerbitkan kiriman warga, mis. "Mhd Fauzi (Reporter)" */
+function pbnPublisherText(a) {
+  if (!a.fromVisitor || !a.publishedBy) return '';
+  if (a.category === 'Info Loker' || a.type === 'iklan') return '';
+  const tag = PBN_ROLE_TAG[a.publishedByRole];
+  return a.publishedBy + (tag ? ' (' + tag + ')' : '');
+}
+
+/* Teks pendek: "Ammar Muhammad (Kontributor)" atau "Mhd Fauzi (Reporter)" */
 function pbnByline(a) {
-  const roleTag = { superadmin: 'Super Admin', admin: 'Admin', reporter: 'Reporter' };
-  if (a.fromVisitor) {
-    let text = (a.author || 'Pengunjung') + ' (Kontributor)';
-    const tag = roleTag[a.publishedByRole];
-    const lokerOrIklan = a.category === 'Info Loker' || a.type === 'iklan';
-    if (!lokerOrIklan && a.publishedBy && tag) text += ', ' + a.publishedBy + ' (' + tag + ')';
-    return text;
-  }
-  const tag = roleTag[a.authorRole];
+  if (a.fromVisitor) return (a.author || 'Pengunjung') + ' (Kontributor)';
+  const tag = PBN_ROLE_TAG[a.authorRole];
   return (a.author || '') + (tag ? ' (' + tag + ')' : '');
+}
+
+/* Baris lengkap untuk halaman berita & hero:
+   Oleh Ammar Muhammad (Kontributor) · Diterbitkan oleh Mhd Fauzi (Reporter) · */
+function pbnBylineHtml(a) {
+  let h = '<span>Oleh ' + pbnEscapeHtml(pbnByline(a)) + '</span><span class="dot">·</span>';
+  const pub = pbnPublisherText(a);
+  if (pub) h += '<span>Diterbitkan oleh ' + pbnEscapeHtml(pub) + '</span><span class="dot">·</span>';
+  return h;
 }
 
 function pbnShowAuthor(a) {
