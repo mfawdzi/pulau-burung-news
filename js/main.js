@@ -1181,12 +1181,20 @@ function openAdModal(ad) {
 
   const desc = ad.detail || ad.content || ad.excerpt || '';
 
+  // Iklan berisi video dibuat lebih lebar; video Google Drive diberi bingkai lebih tinggi
+  // supaya tombol kontrol pemutarnya tidak terpotong.
+  box.style.maxWidth = ad.videoUrl ? '640px' : '480px';
+  let adVideoHtml = ad.videoUrl ? pbnVideoEmbedHtml(ad.videoUrl) : '';
+  if (adVideoHtml && /drive\.google\.com/.test(ad.videoUrl)) {
+    adVideoHtml = adVideoHtml.replace('class="modal-video"', 'class="modal-video" style="aspect-ratio:16/10;min-height:230px;"');
+  }
+
   box.innerHTML = `
     <button class="modal-close" id="ad-modal-close">×</button>
     <span class="tag ${pbnCategoryTagClass(ad.category)}">IKLAN</span>
     <h1 style="margin-top:12px;">${pbnEscapeHtml(ad.title)}</h1>
         <div class="modal-figure"${pbnImageStyle(ad)}></div>
-    ${ad.videoUrl ? `<div style="margin-top:16px;"><div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.05em;margin-bottom:8px;">▶ TONTON CONTOH / EPISODE PERCOBAAN</div>${pbnVideoEmbedHtml(ad.videoUrl)}</div>` : ''}
+    ${adVideoHtml ? `<div style="margin-top:16px;"><div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.05em;margin-bottom:8px;">▶ TONTON VIDEO</div>${adVideoHtml}</div>` : ''}
     <div class="modal-body"><p>${pbnEscapeHtml(desc)}</p></div>
     ${destinationLink ? `
       <a href="${pbnEscapeHtml(destinationLink)}" target="_blank" rel="noopener" class="action-btn"
