@@ -3159,3 +3159,53 @@ body.pbn-loading footer{
   0%, 80%, 100%{ opacity:0.2; }
   40%{ opacity:1; }
 }
+
+/* =========================================================
+   EDIT & HAPUS KOMENTAR
+   ========================================================= */
+.comment-actions{
+  display:flex;
+  gap:14px;
+  margin-top:6px;
+}
+.comment-act{
+  background:none;
+  border:none;
+  padding:0;
+  cursor:pointer;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:11px;
+  font-weight:600;
+  color:var(--ink-soft);
+}
+.comment-act:hover{ color:var(--pine); text-decoration:underline; }
+.comment-act-danger:hover{ color:var(--rust); }
+.comment-edit{ margin-top:8px; }
+.comment-edit-text{
+  width:100%;
+  border:1px solid var(--pine);
+  background:var(--paper);
+  padding:10px 12px;
+  font-family:'Inter', sans-serif;
+  font-size:14px;
+  color:var(--ink);
+  outline:none;
+  resize:vertical;
+  min-height:70px;
+}
+.comment-edit-btns{ display:flex; gap:8px; margin-top:8px; }
+.comment-btn{
+  border:1px solid var(--line-strong);
+  background:var(--paper);
+  color:var(--ink);
+  padding:6px 14px;
+  cursor:pointer;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:11px;
+  font-weight:600;
+}
+.comment-btn-primary{
+  background:var(--pine);
+  border-color:var(--pine);
+  color:#fff;
+}
