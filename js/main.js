@@ -1511,7 +1511,7 @@ function bindArticleActions(article) {
   if (shareBtn) {
     shareBtn.addEventListener('click', () => {
       pbnTrackEvent('share', article);
-      const url = window.location.href;
+      const url = 'https://pburungnews.mfwdz-store.workers.dev/a/' + article.id + '/' + pbnSlugify(article.title);
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(url).then(
           () => showToast('Link berita disalin!'),
