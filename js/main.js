@@ -1177,6 +1177,7 @@ function openAdModal(ad) {
     ? String(ad.phone).replace(/\D/g, '').replace(/^0/, '62')
     : '';
   const whatsappLink = phone ? `https://wa.me/${phone}` : '';
+  const destinationLink = ad.linkUrl ? ad.linkUrl.trim() : '';
 
   const desc = ad.detail || ad.content || ad.excerpt || '';
 
@@ -1186,14 +1187,19 @@ function openAdModal(ad) {
     <h1 style="margin-top:12px;">${pbnEscapeHtml(ad.title)}</h1>
     <div class="modal-figure"${pbnImageStyle(ad)}></div>
     <div class="modal-body"><p>${pbnEscapeHtml(desc)}</p></div>
+    ${destinationLink ? `
+      <a href="${pbnEscapeHtml(destinationLink)}" target="_blank" rel="noopener" class="action-btn"
+        style="display:block;width:100%;box-sizing:border-box;text-align:center;text-decoration:none;background:#A6742A;color:white;font-weight:bold;padding:14px 18px;border-radius:6px;margin-top:16px;">
+        🔗 KUNJUNGI LINK
+      </a>
+    ` : ''}
     ${whatsappLink ? `
       <a href="${whatsappLink}" target="_blank" rel="noopener" class="action-btn"
         style="display:block;width:100%;box-sizing:border-box;text-align:center;text-decoration:none;background:#128C7E;color:white;font-weight:bold;padding:14px 18px;border-radius:6px;margin-top:16px;">
-        📱 HUBUNGI PENJUAL VIA WHATSAPP
+        📱 HUBUNGI VIA WHATSAPP
       </a>
     ` : ''}
   `;
-
   document.getElementById('ad-modal-close').addEventListener('click', closeAdModal);
   overlay.classList.add('open');
   document.body.style.overflow = 'hidden';
