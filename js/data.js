@@ -66,6 +66,7 @@ const PBN_DEFAULT_BOARD_CARDS = [
 const PBN_CACHE = {
   articles: [], users: [], lokerRequests: [], newsTips: [], adRequests: [],
   comments: [], likes: [], boardCards: [], me: null,
+  myLikes: {},            // status suka milik pengguna yang login: { 'idArtikel__username': true/false }
   marketWidget: JSON.parse(JSON.stringify(PBN_DEFAULT_MARKET_WIDGET)),
   shopeeAds: JSON.parse(JSON.stringify(PBN_DEFAULT_SHOPEE_ADS)),
   popupVideo: JSON.parse(JSON.stringify(PBN_DEFAULT_POPUP_VIDEO)),
@@ -326,12 +327,117 @@ function pbnInitAuth() {
 /* ---------- Articles ---------- */
 function pbnGetArticles() { return PBN_CACHE.articles; }
 function pbnGetArticleById(id) { return PBN_CACHE.articles.find(a => a.id === id) || null; }
+/* ---------- Gambar artikel: gambar mini di dokumen, gambar besar dipisah ----------
+   Dokumen berita menyimpan gambar MINI (640px) di field "image", sehingga daftar & beranda ringan.
+   Gambar besar disimpan di dokumen terpisah "img_<idArtikel>" (koleksi articles juga) dan hanya
+   diambil saat berita dibuka. Dokumen img_* tidak punya field date/type/views, jadi tidak ikut
+   kueri daftar berita. */
+const PBN_SPLIT_MIN_CHARS = 70000;   // gambar di atas ±50 KB dipecah
+const PBN_FULLIMG = {};
+
+function pbnIsBigDataImage(img) {
+  return typeof img === 'string' && /^data:image\/(jpeg|png|webp);base64,/i.test(img) && img.length > PBN_SPLIT_MIN_CHARS;
+}
+
+function pbnShrinkImage(dataUrl, maxSide, quality) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        const out = canvas.toDataURL('image/jpeg', quality);
+        resolve(out.length < dataUrl.length ? out : dataUrl);
+      } catch (e) { resolve(dataUrl); }
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
+async function pbnSplitArticleImage(id, dataUrl) {
+  try {
+    const thumb = await pbnShrinkImage(dataUrl, 640, 0.6);
+    const full = await pbnShrinkImage(dataUrl, 1000, 0.72);
+    const batch = db.batch();
+    batch.set(db.collection('articles').doc('img_' + id), { kind: 'fullimage', articleId: id, image: full });
+    batch.update(db.collection('articles').doc(id), { image: thumb, hasFull: true });
+    await batch.commit();
+  } catch (e) { console.error('[Gambar] gagal memecah gambar', e); }
+}
+
+async function pbnLoadFullImage(id) {
+  if (id in PBN_FULLIMG) return PBN_FULLIMG[id];
+  let url = null;
+  try {
+    const snap = await db.collection('articles').doc('img_' + id).get();
+    url = snap.exists ? (snap.data().image || null) : null;
+  } catch (e) { console.error(e); }
+  PBN_FULLIMG[id] = url;
+  return url;
+}
+
+/* Jalankan SEKALI dari Console di halaman admin (login sebagai Admin Super):
+     await pbnMigrateImages()
+   Memperkecil gambar berita lama yang besar. Aman diulang: artikel yang sudah diproses dilewati. */
+async function pbnMigrateImages() {
+  let last = null, done = 0, skipped = 0, failed = 0, savedKB = 0;
+  for (;;) {
+    let q = db.collection('articles').orderBy(firebase.firestore.FieldPath.documentId()).limit(10);
+    if (last) q = q.startAfter(last);
+    const snap = await q.get();
+    if (snap.empty) break;
+    for (const d of snap.docs) {
+      last = d;
+      const a = d.data();
+      const eligible = d.id.indexOf('img_') !== 0 && a.kind !== 'fullimage' && !a.hasFull &&
+                       (!a.type || a.type === 'berita') && pbnIsBigDataImage(a.image);
+      if (!eligible) { skipped++; continue; }
+      try {
+        const thumb = await pbnShrinkImage(a.image, 640, 0.6);
+        const full = await pbnShrinkImage(a.image, 1000, 0.72);
+        const batch = db.batch();
+        batch.set(db.collection('articles').doc('img_' + d.id), { kind: 'fullimage', articleId: d.id, image: full });
+        batch.update(d.ref, { image: thumb, hasFull: true });
+        await batch.commit();
+        savedKB += Math.round((a.image.length - thumb.length) / 1024);
+        done++;
+        console.log('[Migrasi gambar] ' + (a.title || d.id) + ' ... selesai');
+      } catch (e) { failed++; console.error('[Migrasi gambar] gagal: ' + d.id, e); }
+    }
+  }
+  const msg = 'Selesai. Diperkecil: ' + done + ', dilewati: ' + skipped + ', gagal: ' + failed + ', hemat sekitar ' + savedKB + ' KB per muat semua artikel';
+  console.log('[Migrasi gambar] ' + msg);
+  return msg;
+}
+
 function pbnUpsertArticle(article) {
   if (!article.id) article.id = pbnNewId();
-  db.collection('articles').doc(article.id).set(article).catch(e => console.error(e));
+  const prev = pbnGetArticleById(article.id);
+  const bigNew = article.type === 'berita' && pbnIsBigDataImage(article.image);
+  if (bigNew) {
+    article.hasFull = false;                       // diisi true setelah gambar selesai dipecah
+  } else if (prev && prev.hasFull) {
+    if (article.image === prev.image) {
+      article.hasFull = true;                      // gambar tidak diganti, gambar besar tetap dipakai
+    } else {
+      article.hasFull = false;                     // gambar diganti dengan yang kecil: buang gambar besar lama
+      db.collection('articles').doc('img_' + article.id).delete().catch(() => {});
+    }
+  }
+  db.collection('articles').doc(article.id).set(article).then(() => {
+    if (bigNew) pbnSplitArticleImage(article.id, article.image);
+  }).catch(e => console.error(e));
 }
 function pbnDeleteArticle(id) {
   db.collection('articles').doc(id).delete().catch(e => console.error(e));
+  db.collection('articles').doc('img_' + id).delete().catch(() => {});
 }
 function pbnIncrementViews(id) {
   db.collection('articles').doc(id).update({ views: firebase.firestore.FieldValue.increment(1) }).catch(e => console.error(e));
@@ -496,6 +602,22 @@ function pbnDeleteBoardCard(id) {
 
 /* ---------- Komentar ---------- */
 function pbnGetComments() { return PBN_CACHE.comments; }
+
+/* Halaman publik: pantau komentar HANYA untuk artikel yang sedang dibuka */
+let PBN_COMMENTS_UNSUB = null;
+function pbnStopWatchComments() {
+  if (PBN_COMMENTS_UNSUB) { try { PBN_COMMENTS_UNSUB(); } catch (e) {} PBN_COMMENTS_UNSUB = null; }
+}
+function pbnWatchComments(articleId) {
+  if (PBN_IS_ADMIN_PAGE) return;
+  pbnStopWatchComments();
+  PBN_CACHE.comments = [];
+  PBN_COMMENTS_UNSUB = db.collection('comments').where('articleId', '==', articleId).onSnapshot(snap => {
+    PBN_CACHE.comments = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    PBN_CACHE.ready.comments = true;
+    pbnNotifyChange('comments');
+  }, err => console.error('[Firestore] gagal memantau komentar', err));
+}
 function pbnAddComment(comment) {
   const id = pbnNewId();
   db.collection('comments').doc(id).set({
@@ -694,25 +816,98 @@ function pbnUpdateProfile(username, { name, phone, email, password, avatar }) {
   return PBN_CACHE.me;
 }
 
-/* ---------- Suka (Like) Berita ---------- */
-function pbnGetLikes() { return PBN_CACHE.likes; }
+/* ---------- Suka (Like) Berita ----------
+   Jumlah suka = field "likeCount" di dokumen artikel (sudah ikut terbaca, 0 pembacaan tambahan).
+   Siapa yang sudah menyukai dicatat di koleksi "likes" dengan ID tetap "<idArtikel>__<username>",
+   dan hanya dicek 1 dokumen milik pengguna yang login. */
+function pbnLikeDocId(articleId, username) {
+  return String(articleId) + '__' + String(username).replace(/[\/\s]/g, '_');
+}
+function pbnGetLikes() { return []; }
 function pbnHasLiked(articleId, username) {
   if (!username) return false;
-  return PBN_CACHE.likes.some(l => l.articleId === articleId && l.username === username);
+  return !!PBN_CACHE.myLikes[pbnLikeDocId(articleId, username)];
 }
 function pbnGetLikeCount(articleId) {
-  return PBN_CACHE.likes.filter(l => l.articleId === articleId).length;
+  const a = pbnGetArticleById(articleId);
+  return Math.max(0, Number(a && a.likeCount) || 0);
 }
+async function pbnLoadMyLike(articleId) {
+  const me = PBN_CACHE.me;
+  if (!me || !articleId) return;
+  const id = pbnLikeDocId(articleId, me.username);
+  if (id in PBN_CACHE.myLikes) return;
+  try {
+    const snap = await db.collection('likes').doc(id).get();
+    PBN_CACHE.myLikes[id] = snap.exists;
+    pbnNotifyChange('likes');
+  } catch (e) { console.error(e); }
+}
+const PBN_LIKE_QUEUE = {};
 function pbnToggleLike(articleId, username) {
-  const existing = PBN_CACHE.likes.find(l => l.articleId === articleId && l.username === username);
-  const currentCount = pbnGetLikeCount(articleId);
-  if (existing) {
-    db.collection('likes').doc(existing.id).delete().catch(e => console.error(e));
-    return { liked: false, count: Math.max(0, currentCount - 1) };
+  const id = pbnLikeDocId(articleId, username);
+  const wasLiked = !!PBN_CACHE.myLikes[id];
+  const nowLiked = !wasLiked;
+  const art = pbnGetArticleById(articleId);
+  const before = pbnGetLikeCount(articleId);
+  const after = Math.max(0, before + (nowLiked ? 1 : -1));
+
+  // Tampilan langsung berubah (optimistis), simpan ke server di belakang layar
+  PBN_CACHE.myLikes[id] = nowLiked;
+  if (art) art.likeCount = after;
+
+  const likeRef = db.collection('likes').doc(id);
+  const artRef = db.collection('articles').doc(articleId);
+  const run = () => db.runTransaction(async tx => {
+    const cur = await tx.get(likeRef);
+    if (nowLiked && !cur.exists) {
+      tx.set(likeRef, { articleId, username, date: new Date().toISOString() });
+      tx.update(artRef, { likeCount: firebase.firestore.FieldValue.increment(1) });
+    } else if (!nowLiked && cur.exists) {
+      tx.delete(likeRef);
+      tx.update(artRef, { likeCount: firebase.firestore.FieldValue.increment(-1) });
+    }
+  });
+  // Antre per artikel+pengguna supaya klik cepat berulang tidak saling bertabrakan
+  PBN_LIKE_QUEUE[id] = (PBN_LIKE_QUEUE[id] || Promise.resolve()).then(run).catch(e => {
+    console.error(e);
+    PBN_CACHE.myLikes[id] = wasLiked;
+    if (art) art.likeCount = before;
+    pbnNotifyChange('likes');
+    if (typeof showToast === 'function') showToast('Gagal menyimpan suka (izin ditolak / koneksi bermasalah).', true);
+  });
+  return { liked: nowLiked, count: after };
+}
+
+/* Jalankan SEKALI dari Console browser di halaman admin (login sebagai Admin Super):
+     await pbnMigrateLikes()
+   Mengubah data suka lama (koleksi likes ber-ID acak) menjadi format baru + mengisi likeCount tiap artikel. */
+async function pbnMigrateLikes() {
+  const snap = await db.collection('likes').get();
+  const pairs = new Map();      // id baru -> data
+  const oldIds = [];            // dokumen lama yang ID-nya bukan format baru
+  const perArticle = {};
+  snap.docs.forEach(d => {
+    const l = d.data();
+    if (!l.articleId || !l.username) return;
+    const nid = pbnLikeDocId(l.articleId, l.username);
+    if (!pairs.has(nid)) { pairs.set(nid, { articleId: l.articleId, username: l.username, date: l.date || new Date().toISOString() }); perArticle[l.articleId] = (perArticle[l.articleId] || 0) + 1; }
+    if (d.id !== nid) oldIds.push(d.id);
+  });
+  const ops = [];
+  pairs.forEach((data, nid) => ops.push(b => b.set(db.collection('likes').doc(nid), data)));
+  oldIds.forEach(id => ops.push(b => b.delete(db.collection('likes').doc(id))));
+  for (let i = 0; i < ops.length; i += 400) {
+    const batch = db.batch();
+    ops.slice(i, i + 400).forEach(f => f(batch));
+    await batch.commit();
   }
-  const id = pbnNewId();
-  db.collection('likes').doc(id).set({ articleId, username, date: new Date().toISOString() }).catch(e => console.error(e));
-  return { liked: true, count: currentCount + 1 };
+  let updated = 0, skipped = 0;
+  await Promise.all(Object.keys(perArticle).map(id =>
+    db.collection('articles').doc(id).update({ likeCount: perArticle[id] }).then(() => { updated++; }).catch(() => { skipped++; })));
+  const msg = 'Selesai. Suka unik: ' + pairs.size + ', artikel diperbarui: ' + updated + ', dilewati (artikel sudah dihapus): ' + skipped;
+  console.log('[Migrasi suka] ' + msg);
+  return msg;
 }
 
 /* ---------- Util ---------- */
