@@ -1522,6 +1522,9 @@ function refreshLikeButton(articleId) {
   if (countEl) countEl.textContent = pbnGetLikeCount(articleId);
 }
 
+// Komentar yang sedang diedit: { id, draft } — supaya ketikan tidak hilang saat daftar digambar ulang
+let pbnEditingComment = null;
+
 function renderComments(articleId) {
   const list = document.getElementById('comments-list');
   if (!list) return;
@@ -1537,13 +1540,93 @@ function renderComments(articleId) {
     return;
   }
 
-  list.innerHTML = comments.map(c => `
+  // Ingat posisi kursor kalau sedang mengetik di kotak edit
+  const active = document.activeElement;
+  const hadFocus = active && active.classList && active.classList.contains('comment-edit-text');
+  const caret = hadFocus ? active.selectionStart : null;
+
+  const me = pbnCurrentUser();
+
+  list.innerHTML = comments.map(c => {
+    const mine = !!(me && c.submittedBy === me.username);
+    const editing = !!(pbnEditingComment && pbnEditingComment.id === c.id);
+    const cid = pbnEscapeHtml(c.id);
+
+    const body = editing
+      ? `<div class="comment-edit">
+           <textarea class="comment-edit-text" data-id="${cid}" maxlength="2000">${pbnEscapeHtml(pbnEditingComment.draft)}</textarea>
+           <div class="comment-edit-btns">
+             <button type="button" class="comment-btn comment-btn-primary" data-act="save" data-id="${cid}">Simpan</button>
+             <button type="button" class="comment-btn" data-act="cancel" data-id="${cid}">Batal</button>
+           </div>
+         </div>`
+      : `<div class="comment-text">${pbnEscapeHtml(c.text)}</div>`;
+
+    const actions = (mine && !editing)
+      ? `<div class="comment-actions">
+           <button type="button" class="comment-act" data-act="edit" data-id="${cid}">Edit</button>
+           <button type="button" class="comment-act comment-act-danger" data-act="delete" data-id="${cid}">Hapus</button>
+         </div>`
+      : '';
+
+    return `
     <div class="comment-item">
       <span class="comment-author">${pbnEscapeHtml(c.submittedByName || c.submittedBy)}</span>
-      <span class="comment-date">${pbnRelativeTime(c.date)}</span>
-      <div class="comment-text">${pbnEscapeHtml(c.text)}</div>
-    </div>
-  `).join('');
+      <span class="comment-date">${pbnRelativeTime(c.date)}${c.edited ? ' · diedit' : ''}</span>
+      ${body}
+      ${actions}
+    </div>`;
+  }).join('');
+
+  if (hadFocus) {
+    const ta = list.querySelector('.comment-edit-text');
+    if (ta) { ta.focus(); try { ta.setSelectionRange(caret, caret); } catch (e) {} }
+  }
+
+  // Klik tombol Edit / Hapus / Simpan / Batal (hanya untuk komentar milik sendiri)
+  list.onclick = (e) => {
+    const btn = e.target.closest('[data-act]');
+    if (!btn) return;
+    const act = btn.getAttribute('data-act');
+    const id = btn.getAttribute('data-id');
+    const c = pbnGetComments().find(x => x.id === id);
+    const user = pbnCurrentUser();
+    if (!c || !user || c.submittedBy !== user.username) return;
+
+    if (act === 'edit') {
+      pbnEditingComment = { id, draft: c.text };
+      renderComments(articleId);
+      const ta = list.querySelector('.comment-edit-text');
+      if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+    } else if (act === 'cancel') {
+      pbnEditingComment = null;
+      renderComments(articleId);
+    } else if (act === 'save') {
+      const text = ((pbnEditingComment && pbnEditingComment.draft) || '').trim();
+      if (!text) { showToast('Komentar tidak boleh kosong.', true); return; }
+      if (text !== c.text) {
+        pbnEditComment(id, text);
+        c.text = text; c.edited = true;      // tampilkan langsung tanpa menunggu server
+      }
+      pbnEditingComment = null;
+      renderComments(articleId);
+      showToast('Komentar diperbarui.');
+    } else if (act === 'delete') {
+      if (!confirm('Hapus komentar ini?')) return;
+      pbnDeleteComment(id);
+      const i = PBN_CACHE.comments.findIndex(x => x.id === id);
+      if (i > -1) PBN_CACHE.comments.splice(i, 1);   // hilang langsung dari tampilan
+      renderComments(articleId);
+      showToast('Komentar dihapus.');
+    }
+  };
+
+  // Simpan ketikan sementara di kotak edit
+  list.oninput = (e) => {
+    if (e.target.classList && e.target.classList.contains('comment-edit-text') && pbnEditingComment) {
+      pbnEditingComment.draft = e.target.value;
+    }
+  };
 }
 
 /* ---------- Deep-link berita lewat hash (#berita-<id>), dipakai untuk bagikan link ---------- */
