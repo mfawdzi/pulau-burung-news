@@ -637,9 +637,23 @@ function pbnCategoryTagClass(category) {
   return map[category] || 'tag-pulau';
 }
 function pbnEscapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str || '';
-  return div.innerHTML;
+  // Escape juga tanda kutip, supaya aman dipakai di dalam atribut HTML (src="...", alt="...")
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/* Hanya izinkan gambar/media dari data:image, https://, atau path relatif.
+   Dipakai untuk src="..." dan url('...') agar tidak bisa disisipi kode. */
+function pbnSafeUrl(v) {
+  const s = String(v || '').trim();
+  if (/^data:image\/(png|jpe?g|gif|webp);base64,[a-z0-9+\/=]+$/i.test(s)) return s;
+  if (/^https:\/\/[^\s"'<>()\\]+$/i.test(s)) return s;
+  if (/^[\w\-./]+\.(png|jpe?g|gif|webp|svg|mp4|webm)$/i.test(s)) return s;
+  return '';
 }
 
 function pbnSlugify(str) {
