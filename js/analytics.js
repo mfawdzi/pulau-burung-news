@@ -17,8 +17,17 @@
     year: new Date().getFullYear()
   };
   let events = [];
+  let loaded = false;
   let todayVisitors = 0;
   let loadToken = 0;
+
+  /* Hanya hitung catatan dari konten yang MASIH ADA.
+     Kalau sebuah berita dihapus, statistiknya ikut hilang. */
+  function liveEvents() {
+    if (!(typeof PBN_CACHE !== 'undefined' && PBN_CACHE.ready && PBN_CACHE.ready.articles)) return events;
+    const ids = new Set(pbnGetArticles().map(a => a.id));
+    return events.filter(e => !e.articleId || ids.has(e.articleId));
+  }
 
   function pad(n) { return String(n).padStart(2, '0'); }
   function todayStr() {
@@ -150,6 +159,7 @@
       else today = await queryEvents('day', todayStr());
       if (token !== loadToken) return;               // ada permintaan yang lebih baru
       events = data;
+      loaded = true;
       todayVisitors = new Set(today.map(e => e.visitorId)).size;
       render();
     } catch (err) {
@@ -178,7 +188,7 @@
       labels = MONTHS_SHORT.slice();
     }
     const buckets = labels.map(label => ({ label, views: 0, shares: 0, visitors: new Set() }));
-    events.forEach(e => {
+    liveEvents().forEach(e => {
       let idx;
       if (state.mode === 'day') idx = Number(e.hour);
       else if (state.mode === 'month') idx = Number(String(e.day).slice(8, 10)) - 1;
@@ -257,7 +267,7 @@
 
   function topListHtml() {
     const map = new Map();
-    events.forEach(e => {
+    liveEvents().forEach(e => {
       if ((e.type !== 'view' && e.type !== 'share') || !e.articleId) return;
       let r = map.get(e.articleId);
       if (!r) {
@@ -283,7 +293,7 @@
 
   function donutHtml() {
     const map = new Map();
-    events.forEach(e => {
+    liveEvents().forEach(e => {
       if (e.type !== 'view') return;
       const c = e.category || 'Lainnya';
       map.set(c, (map.get(c) || 0) + 1);
@@ -311,9 +321,10 @@
   }
 
   function render() {
-    const views = events.filter(e => e.type === 'view').length;
-    const shares = events.filter(e => e.type === 'share').length;
-    const visitors = new Set(events.map(e => e.visitorId)).size;
+    const evs = liveEvents();
+    const views = evs.filter(e => e.type === 'view').length;
+    const shares = evs.filter(e => e.type === 'share').length;
+    const visitors = new Set(evs.map(e => e.visitorId)).size;
     const label = periodLabel();
 
     document.getElementById('pbn-an-range').textContent = 'Menampilkan data: ' + label;
@@ -340,7 +351,12 @@
     if (!box.dataset.built) { build(box); load(); }
   }
 
-  document.addEventListener('pbn:data-changed', ensure);
+  document.addEventListener('pbn:data-changed', (e) => {
+    ensure();
+    // Berita ditambah/dihapus -> perbarui statistik langsung tanpa memuat ulang
+    const box = document.getElementById('pbn-analytics');
+    if (e.detail && e.detail.name === 'articles' && loaded && box && box.dataset.built) render();
+  });
   document.addEventListener('DOMContentLoaded', ensure);
 
 })();
