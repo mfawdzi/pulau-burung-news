@@ -97,7 +97,7 @@ function renderAll() {
    Jika tidak ada foto, kembalikan string kosong sehingga pola placeholder bawaan tetap tampil. */
 function pbnImageStyle(article) {
   return article && article.image
-    ? ` style="background-image:url('${article.image}');background-size:cover;background-position:center;"`
+    ? ` style="background-image:url('${pbnSafeUrl(article.image)}');background-size:cover;background-position:center;"`
     : '';
 }
 
@@ -685,7 +685,7 @@ function renderOneAdSlot(elId, ad, placeholderTitle, placeholderSub) {
   el.classList.add('has-ad');
 
   const imgHtml = ad.image
-    ? `<img src="${ad.image}" alt="${pbnEscapeHtml(ad.title)}">`
+    ? `<img src="${pbnSafeUrl(ad.image)}" alt="${pbnEscapeHtml(ad.title)}">`
     : '';
 
   // =====================================================
@@ -1281,7 +1281,7 @@ function renderAuthArea() {
     return;
   }
 
-  const avatarImg = user.avatar ? `<img src="${user.avatar}" class="avatar-thumb" alt="">` : '';
+  const avatarImg = user.avatar ? `<img src="${pbnSafeUrl(user.avatar)}" class="avatar-thumb" alt="">` : '';
   const displayName = pbnEscapeHtml(user.name || user.username);
   const dropdownAvatar = user.avatar
     ? `<img src="${user.avatar}" class="profile-dropdown-avatar" alt="">`
