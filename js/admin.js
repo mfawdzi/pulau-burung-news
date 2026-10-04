@@ -519,7 +519,7 @@ function renderLokerRequests(user) {
 
   tbody.innerHTML = list.map(r => `
     <tr>
-      <td>${r.image ? `<img src="${r.image}" class="req-thumb" alt="">` : '<span class="art-meta">-</span>'}</td>
+      <td>${r.image ? `<img src="${pbnSafeUrl(r.image)}" class="req-thumb" alt="">` : '<span class="art-meta">-</span>'}</td>
       <td>
         <div class="art-title">${pbnEscapeHtml(r.businessName)}</div>
         <div class="art-meta">PJ: ${pbnEscapeHtml(r.contactName || '-')}</div>
@@ -705,7 +705,7 @@ function renderTips(user) {
 
   tbody.innerHTML = list.map(t => `
     <tr>
-      <td>${t.image ? `<img src="${t.image}" class="req-thumb" alt="">` : '<span class="art-meta">-</span>'}</td>
+      <td>${t.image ? `<img src="${pbnSafeUrl(t.image)}" class="req-thumb" alt="">` : '<span class="art-meta">-</span>'}</td>
       <td>
         <div class="art-title">${pbnEscapeHtml(t.title)}</div>
         <div class="art-meta">${pbnEscapeHtml(t.detail)}</div>
