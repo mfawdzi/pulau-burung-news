@@ -121,8 +121,19 @@
 
   /* ---------- Mengambil data ---------- */
   async function queryEvents(field, value) {
-    const snap = await db.collection('analytics').where(field, '==', value).limit(20000).get();
-    return snap.docs.map(d => d.data());
+    // Firestore membatasi 10.000 data per permintaan, jadi diambil bertahap
+    const PAGE = 5000, MAX = 50000;
+    const out = [];
+    let last = null;
+    while (out.length < MAX) {
+      let q = db.collection('analytics').where(field, '==', value).limit(PAGE);
+      if (last) q = q.startAfter(last);
+      const snap = await q.get();
+      snap.docs.forEach(d => out.push(d.data()));
+      if (snap.docs.length < PAGE) break;
+      last = snap.docs[snap.docs.length - 1];
+    }
+    return out;
   }
 
   async function load() {
