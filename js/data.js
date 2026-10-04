@@ -98,6 +98,12 @@ function pbnSubscribeDoc(colName, docId, cacheKey, defaults) {
 
 async function pbnSeedIfEmpty() {
   try {
+    // Data contoh hanya boleh diisi SATU KALI. Kalau tidak, begitu semua berita
+    // dihapus, koleksi jadi kosong dan data contoh akan muncul lagi.
+    const seedFlagRef = db.collection('settings').doc('seedDone');
+    const seedFlag = await seedFlagRef.get();
+    if (seedFlag.exists) return;
+
     const artSnap = await db.collection('articles').limit(1).get();
     if (artSnap.empty) {
       const batch = db.batch();
@@ -113,6 +119,8 @@ async function pbnSeedIfEmpty() {
       PBN_DEFAULT_BOARD_CARDS.forEach(c => batch3.set(db.collection('boardCards').doc(c.id), c));
       await batch3.commit();
     }
+
+    await seedFlagRef.set({ done: true, at: new Date().toISOString() });
   } catch (e) {
     console.error('[Firestore] gagal seeding data awal', e);
   }
