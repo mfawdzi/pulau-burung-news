@@ -1827,7 +1827,8 @@ function pbnOpenAdFormForEdit(article, req, user) {
   document.getElementById('ads-create-detail').value = a.detail || a.content || r.detail || '';
   document.getElementById('ads-create-promo').value = Array.isArray(a.promoTexts) ? a.promoTexts.join('\n') : '';
   document.getElementById('ads-create-size').value = a.adSize || 'besar';
-  document.getElementById('ads-create-link').value = a.linkUrl || '';
+    document.getElementById('ads-create-link').value = a.linkUrl || '';
+  document.getElementById('ads-create-video').value = a.videoUrl || '';
   document.getElementById('ads-create-status').value = article ? (a.status === 'published' ? 'published' : 'draft') : 'published';
   document.getElementById('ads-create-image').value = '';
   document.getElementById('ads-create-image').required = false;
@@ -1880,7 +1881,8 @@ function bindAdCreateForm(user) {
       : [];
 
     const adSize = document.getElementById('ads-create-size').value;
-    const linkUrl = document.getElementById('ads-create-link').value.trim();
+        const linkUrl = document.getElementById('ads-create-link').value.trim();
+    const videoUrl = document.getElementById('ads-create-video').value.trim();
     const status = document.getElementById('ads-create-status').value;
 
     const file = document.getElementById('ads-create-image').files[0];
@@ -1921,8 +1923,8 @@ function bindAdCreateForm(user) {
       excerpt: detail,
       content: detail,
 
-      image: image,
-      videoUrl: '',
+            image: image,
+      videoUrl: videoUrl,
 
       status: status === 'published'
         ? 'published'
